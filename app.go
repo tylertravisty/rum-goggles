@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/tylertravisty/go-utils/random"
+	rumblelivestreamlib "github.com/tylertravisty/rumble-livestream-lib-go"
 )
 
 // App struct
@@ -32,4 +33,17 @@ func (a *App) Greet(name string) string {
 	}
 	//return fmt.Sprintf("Hello %s, It's show time!", name)
 	return fmt.Sprintf("Hello %s, It's show time!", random)
+}
+
+func (a *App) QueryAPI(url string) (*rumblelivestreamlib.Followers, error) {
+	fmt.Println("QueryAPI")
+	client := rumblelivestreamlib.Client{StreamKey: url}
+	resp, err := client.Request()
+	if err != nil {
+		// TODO: log error
+		fmt.Println("client.Request err:", err)
+		return nil, fmt.Errorf("API request failed")
+	}
+
+	return &resp.Followers, nil
 }

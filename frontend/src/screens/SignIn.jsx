@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { NavDashboard } from './Navigation';
+import { Eye, EyeSlash } from '../assets/icons';
 import './SignIn.css';
 
 function SignIn() {
     const navigate = useNavigate();
     const [streamKey, setStreamKey] = useState('');
     const updateStreamKey = (event) => setStreamKey(event.target.value);
+    const [showStreamKey, setShowStreamKey] = useState(false);
+    const updateShowStreamKey = () => setShowStreamKey(!showStreamKey);
 
     const saveStreamKey = () => {
         navigate(NavDashboard, { state: { streamKey: streamKey } });
@@ -26,9 +29,15 @@ function SignIn() {
                         className='signin-input'
                         onChange={updateStreamKey}
                         placeholder='Stream Key'
-                        type='text'
+                        type={showStreamKey ? 'text' : 'password'}
                         value={streamKey}
                     />
+                    <button className='signin-show' onClick={updateShowStreamKey}>
+                        <img
+                            className='signin-show-icon'
+                            src={showStreamKey ? EyeSlash : Eye}
+                        ></img>
+                    </button>
                     <button className='signin-button' onClick={saveStreamKey}>
                         Save
                     </button>
