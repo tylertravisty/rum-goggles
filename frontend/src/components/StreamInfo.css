@@ -1,0 +1,120 @@
+.stream-info {
+    display: flex;
+    flex-direction: column;
+    /* padding: 20px 0px; */
+    width: 100%;
+}
+
+.stream-info-title {
+    color: white;
+    font-family: sans-serif;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.stream-info-categories {
+    padding: 5px 0px;
+    margin-right: 50px;
+}
+
+.stream-info-category {
+    background-color: rgba(6,23,38,1);
+    border: 1px solid white;
+    border-radius: 30px;
+    color: white;
+    font-family: sans-serif;
+    margin-right: 5px;
+    padding: 1px 7px;
+}
+
+.stream-info-channel {
+    color: white;
+    font-family: sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 5px 20px;
+}
+
+.stream-info-controls {
+    align-items: center;
+    border: 1px solid white;
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    margin: 5px 0px 20px 0px;
+}
+
+.stream-info-control {
+    height: 32px;
+    padding: 5px;
+    width: 32px;
+}
+
+.stream-info-control-button {
+    background-color: #000312;
+    border-radius: 5px;
+    cursor: pointer;
+    border: none;
+    padding: 0px;
+}
+
+.stream-info-control-button:hover {
+    background-color: rgba(6,23,38,1);
+}
+
+.stream-info-footer {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+}
+
+.stream-info-likes {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    padding: 5px 0px;
+}
+
+.stream-info-likes-count {
+    color: white;
+    font-family: monospace;
+    font-size: 16px;
+    padding: 0px 5px;
+}
+
+.stream-info-likes-left {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    background-color: rgba(6,23,38,1);
+    border: 1px solid white;
+    border-radius: 10rem 0rem 0rem 10rem;
+    margin-right: 1px;
+}
+.stream-info-likes-right {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    background-color: rgba(6,23,38,1);
+    border: 1px solid white;
+    border-radius: 0rem 10rem 10rem 0rem;
+}
+
+.stream-info-likes-icon {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    height: 16px;
+    padding: 5px;
+    width: 16px;
+}
+
+.stream-info-live {
+    padding: 10px 20px 5px 20px;
+}
+
+.stream-info-subtitle {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+}

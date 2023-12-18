@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/tylertravisty/go-utils v0.0.0-20230524204414-6893ae548909
-	github.com/tylertravisty/rumble-livestream-lib-go v0.0.0-20231213162428-b33f413975bb
+	github.com/tylertravisty/rumble-livestream-lib-go v0.0.0-20231218182551-5ac1d6c01910
 	github.com/wailsapp/wails/v2 v2.7.1
 )
 
@@ -36,7 +36,7 @@ require (
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
 

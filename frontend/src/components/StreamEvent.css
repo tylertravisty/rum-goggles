@@ -1,0 +1,42 @@
+.stream-event {
+    border-bottom: 1px solid #82b1ff;
+    color: white;
+    display: flex;
+    flex-direction: row;
+    font-family: sans-serif;
+    justify-content: space-between;
+    padding: 10px 20px;
+}
+
+.stream-event-left {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+}
+
+.stream-event-icon {
+    width: 20px;
+    height: 20px;
+    padding-right: 10px;
+}
+
+.stream-event-left-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.stream-event-username {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.stream-event-description {
+    color: #88a0b8;
+    font-size: 14px;
+}
+
+.stream-event-date {
+    align-items: center;
+    display: flex;
+    font-family: monospace;
+}

@@ -1,162 +1,132 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { QueryAPI } from '../../wailsjs/go/main/App';
+import { Start, Stop } from '../../wailsjs/go/api/Api';
 
 import './Dashboard.css';
+import { EventsEmit, EventsOn } from '../../wailsjs/runtime/runtime';
+import { Heart, Star } from '../assets/icons';
+import Highlight from '../components/Highlight';
+import StreamEvent from '../components/StreamEvent';
+import StreamActivity from '../components/StreamActivity';
+import StreamChat from '../components/StreamChat';
+import StreamInfo from '../components/StreamInfo';
 
 function Dashboard() {
     const location = useLocation();
+    const [refresh, setRefresh] = useState(false);
+    const [active, setActive] = useState(false);
     const [streamKey, setStreamKey] = useState(location.state.streamKey);
+    const [channelName, setChannelName] = useState('');
     const [followers, setFollowers] = useState({});
-    const [totalFollowers, setTotalFollowers] = useState('-');
-    const [channelFollowers, setChannelFollowers] = useState('-');
-    const [latestFollower, setLatestFollower] = useState('-');
+    const [totalFollowers, setTotalFollowers] = useState(0);
+    const [channelFollowers, setChannelFollowers] = useState(0);
     const [recentFollowers, setRecentFollowers] = useState([]);
-
-    // useEffect(() => {
-    //     QueryAPI(streamKey)
-    //         .then((response) => {
-    //             console.log(response);
-    //             setFollowers(response);
-    //             setChannelFollowers(response.num_followers);
-    //             setTotalFollowers(response.num_followers_total);
-    //             setLatestFollower(response.latest_follower.username);
-    //             setRecentFollowers(response.recent_followers);
-    //         })
-    //         .catch((e) => console.log('Error:', e));
-    // }, []);
+    const [subscribers, setSubscribers] = useState({});
+    const [subscriberCount, setSubscriberCount] = useState(0);
+    const [recentSubscribers, setRecentSubscribers] = useState([]);
+    const [streamCategories, setStreamCategories] = useState({
+        primary: { title: '' },
+        secondary: { title: '' },
+    });
+    const [streamLikes, setStreamLikes] = useState(0);
+    const [streamLive, setStreamLive] = useState(false);
+    const [streamDislikes, setStreamDislikes] = useState(0);
+    const [streamTitle, setStreamTitle] = useState('');
+    const [watchingNow, setWatchingNow] = useState(0);
+    const [createdOn, setCreatedOn] = useState('');
 
     useEffect(() => {
-        let interval = setInterval(() => {
-            console.log('Query API');
-            QueryAPI(streamKey)
-                .then((response) => {
-                    console.log(response);
-                    setFollowers(response);
-                    setChannelFollowers(response.num_followers);
-                    setTotalFollowers(response.num_followers_total);
-                    setLatestFollower(response.latest_follower.username);
-                    setRecentFollowers(response.recent_followers);
-                })
-                .catch((e) => console.log('Error:', e));
-        }, 10000);
+        console.log('use effect start');
+        Start(streamKey);
+        setActive(true);
 
-        return () => {
-            clearInterval(interval);
-        };
+        EventsOn('QueryResponse', (response) => {
+            console.log('query response received');
+            setRefresh(!refresh);
+            setActive(true);
+            setChannelName(response.channel_name);
+            setFollowers(response.followers);
+            setChannelFollowers(response.followers.num_followers);
+            setTotalFollowers(response.followers.num_followers_total);
+            setRecentFollowers(response.followers.recent_followers);
+            setSubscribers(response.subscribers);
+            setSubscriberCount(response.subscribers.num_subscribers);
+            setRecentSubscribers(response.subscribers.recent_subscribers);
+            if (response.livestreams.length > 0) {
+                setStreamLive(true);
+                setStreamCategories(response.livestreams[0].categories);
+                setStreamLikes(response.livestreams[0].likes);
+                setStreamDislikes(response.livestreams[0].dislikes);
+                setStreamTitle(response.livestreams[0].title);
+                setCreatedOn(response.livestreams[0].created_on);
+                setWatchingNow(response.livestreams[0].watching_now);
+            } else {
+                setStreamLive(false);
+            }
+        });
     }, []);
 
-    const dateDate = (date) => {
-        const options = { month: 'short' };
-        let month = new Intl.DateTimeFormat('en-US', options).format(date);
-        let day = date.getDay();
-        return month + ' ' + day;
+    const startQuery = () => {
+        console.log('start');
+        Start(streamKey);
+        setActive(true);
     };
 
-    const dateDay = (date) => {
-        let now = new Date();
-        let today = now.getDay();
-        switch (date.getDay()) {
-            case 0:
-                return 'Sunday';
-            case 1:
-                return 'Monday';
-            case 2:
-                return 'Tuesday';
-            case 3:
-                return 'Wednesday';
-            case 4:
-                return 'Thursday';
-            case 5:
-                return 'Friday';
-            case 6:
-                return 'Saturday';
+    const stopQuery = () => {
+        console.log('stop');
+        Stop();
+        // EventsEmit('StopQuery');
+        setActive(false);
+    };
+
+    const activityDate = (activity) => {
+        if (activity.followed_on) {
+            return activity.followed_on;
+        }
+        if (activity.subscribed_on) {
+            return activity.subscribed_on;
         }
     };
 
-    const dateTime = (date) => {
-        let now = new Date();
-        let today = now.getDay();
-        let day = date.getDay();
-
-        if (today !== day) {
-            return dateDay(date);
-        }
-
-        let hours24 = date.getHours();
-        let hours = hours24 % 12 || 12;
-
-        let minutes = date.getMinutes();
-
-        let mer = 'pm';
-        if (hours24 < 12) {
-            mer = 'am';
-        }
-
-        return hours + ':' + minutes + ' ' + mer;
-    };
-
-    const dateString = (d) => {
-        let now = new Date();
-        let date = new Date(d);
-        // Fix Rumble's timezone problem
-        date.setHours(date.getHours() - 4);
-        let diff = now - date;
-        switch (true) {
-            case diff < 60000:
-                return 'Now';
-            case diff < 3600000:
-                let minutes = Math.floor(diff / 1000 / 60);
-                let postfix = ' minutes ago';
-                if (minutes == 1) {
-                    postfix = ' minute ago';
-                }
-                return minutes + postfix;
-            case diff < 86400000:
-                return dateTime(date);
-            case diff < 604800000:
-                return dateDay(date);
-            default:
-                return dateDate(date);
-        }
-        console.log('Diff:', diff);
-        return d;
+    const activityEvents = () => {
+        let sorted = [...recentFollowers, ...recentSubscribers].sort((a, b) =>
+            activityDate(a) < activityDate(b) ? 1 : -1
+        );
+        return sorted;
     };
 
     return (
         <div id='Dashboard'>
-            <span>Dashboard:</span>
-            <div className='followers'>
-                <div className='followers-header'>
-                    <span className='followers-header-title'>Followers</span>
-                    <div className='followers-header-highlights'>
-                        <div className='followers-header-highlight'>
-                            <span className='followers-header-highlight-count'>
-                                {channelFollowers}
-                            </span>
-                            <span className='followers-header-highlight-description'>Channel</span>
-                        </div>
-                        <div className='followers-header-highlight'>
-                            <span className='followers-header-highlight-count'>
-                                {totalFollowers}
-                            </span>
-                            <span className='followers-header-highlight-description'>Total</span>
-                        </div>
-                    </div>
+            <div className='header'>
+                <div className='header-left'></div>
+                <div className='highlights'>
+                    {/* <Highlight description={'Session'} type={'stopwatch'} value={createdOn} /> */}
+                    <Highlight description={'Viewers'} type={'count'} value={watchingNow} />
+                    <Highlight description={'Followers'} type={'count'} value={channelFollowers} />
+                    <Highlight description={'Subscribers'} type={'count'} value={subscriberCount} />
                 </div>
-                <div className='followers-list'>
-                    {recentFollowers.map((follower, index) => (
-                        <div className='followers-list-follower'>
-                            <span className='followers-list-follower-username'>
-                                {follower.username}
-                            </span>
-                            <span className='followers-list-follower-date'>
-                                {dateString(follower.followed_on)}
-                            </span>
-                        </div>
-                    ))}
-                </div>
+                <div className='header-right'></div>
             </div>
+            <div className='main'>
+                <div className='main-left'>
+                    <StreamActivity title={'Stream Activity'} events={activityEvents()} />
+                </div>
+                <div className='main-right'>
+                    <StreamChat title={'Stream Chat'} />
+                </div>
+                <div></div>
+            </div>
+            <StreamInfo
+                active={active}
+                channel={channelName}
+                title={streamTitle}
+                categories={streamCategories}
+                likes={streamLikes}
+                live={streamLive}
+                dislikes={streamDislikes}
+                play={startQuery}
+                pause={stopQuery}
+            />
         </div>
     );
 }

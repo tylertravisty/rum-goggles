@@ -1,82 +1,56 @@
 #Dashboard {
     align-items: center;
-    background-color: #f3f5f8;
+    background-color: #000312;
     display: flex;
     flex-direction: column;
     height: 100vh;
     width: 100%;
 }
 
-.followers {
-    background-color: #061726;
-    height: 100%;
+.header {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    height: 62px;
+    justify-content: center;
+    padding: 10px 0px;
     width: 100%;
 }
 
-.followers-list {
-    overflow-y: auto;
+.header-left {
+    width: 20%;
 }
 
-.followers-list-follower {
-    border-bottom: 1px solid #82b1ff;
-    color: white;
+.header-right {
+    width: 20%;
+}
+
+.main {
+    border-bottom: 1px solid #495a6a;
+    border-top: 1px solid #495a6a;
     display: flex;
     flex-direction: row;
-    font-family: sans-serif;
+    height: calc(100vh - 83px - 179px);
     justify-content: space-between;
-    padding: 10px 20px;
-}
-
-.followers-list-follower-username {
-    font-weight: bold;
-}
-
-.followers-list-follower-date {
-    font-family: monospace;
-}
-
-.followers-header {
-    align-items: center;
-    border-bottom: 1px solid #82b1ff;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-evenly;
-    padding: 10px 20px;
-}
-
-.followers-header-title {
-    color: white;
-    font-family: sans-serif;
-    font-size: 24px;
-    font-weight: bold;
-    padding-bottom: 10px;
-    text-transform: uppercase;
-}
-
-.followers-header-highlights {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-evenly;
     width: 100%;
 }
 
-.followers-header-highlight {
+.main-left {
+    border-right: 1px solid #495a6a;
+    width: 30%;
+    height: 100%;
+}
+
+.main-right {
+    width: 70%;
+    height: 100%;
+}
+
+.highlights {
     align-items: center;
-    color: white;
     display: flex;
-    background-color: #75a54b;
-    border-radius: 0.5rem;
-    flex-direction: column;
-    font-family: sans-serif;
-    font-weight: bold;
-    min-width: 50px;
-    padding: 10px;
-}
-
-.followers-header-highlight-count {
-    font-size: 16px;
-}
-
-.followers-header-highlight-description {
-    font-size: 12px;
+    flex-direction: row;
+    justify-content: space-evenly;
+    height: 50px;
+    width: 60%;
 }
