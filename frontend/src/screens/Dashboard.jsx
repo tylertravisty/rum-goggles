@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Start, Stop } from '../../wailsjs/go/api/Api';
 
 import './Dashboard.css';
@@ -10,12 +10,15 @@ import StreamEvent from '../components/StreamEvent';
 import StreamActivity from '../components/StreamActivity';
 import StreamChat from '../components/StreamChat';
 import StreamInfo from '../components/StreamInfo';
+import { NavSignIn } from './Navigation';
 
 function Dashboard() {
     const location = useLocation();
+    const navigate = useNavigate();
     const [refresh, setRefresh] = useState(false);
     const [active, setActive] = useState(false);
     const [streamKey, setStreamKey] = useState(location.state.streamKey);
+    const [username, setUsername] = useState('');
     const [channelName, setChannelName] = useState('');
     const [followers, setFollowers] = useState({});
     const [totalFollowers, setTotalFollowers] = useState(0);
@@ -34,6 +37,7 @@ function Dashboard() {
     const [streamTitle, setStreamTitle] = useState('');
     const [watchingNow, setWatchingNow] = useState(0);
     const [createdOn, setCreatedOn] = useState('');
+    const [modalZ, setModalZ] = useState(false);
 
     useEffect(() => {
         console.log('use effect start');
@@ -44,6 +48,7 @@ function Dashboard() {
             console.log('query response received');
             setRefresh(!refresh);
             setActive(true);
+            setUsername(response.username);
             setChannelName(response.channel_name);
             setFollowers(response.followers);
             setChannelFollowers(response.followers.num_followers);
@@ -64,19 +69,40 @@ function Dashboard() {
                 setStreamLive(false);
             }
         });
+
+        EventsOn('QueryResponseError', (error) => {
+            console.log('Query response error:', error);
+            setActive(false);
+        });
     }, []);
+
+    const home = () => {
+        Stop()
+            .then(() => setActive(false))
+            .then(() => {
+                navigate(NavSignIn);
+            })
+            .catch((err) => {
+                console.log('Stop error:', err);
+            });
+    };
 
     const startQuery = () => {
         console.log('start');
-        Start(streamKey);
-        setActive(true);
+        Start(streamKey)
+            .then(() => {
+                setActive(true);
+            })
+            .catch((err) => {
+                console.log('Start error:', err);
+            });
     };
 
     const stopQuery = () => {
         console.log('stop');
-        Stop();
-        // EventsEmit('StopQuery');
-        setActive(false);
+        Stop().then(() => {
+            setActive(false);
+        });
     };
 
     const activityDate = (activity) => {
@@ -95,39 +121,63 @@ function Dashboard() {
         return sorted;
     };
 
+    const openModal = () => {
+        setModalZ(true);
+    };
+
+    const closeModal = () => {
+        setModalZ(false);
+    };
+
     return (
-        <div id='Dashboard'>
-            <div className='header'>
-                <div className='header-left'></div>
-                <div className='highlights'>
-                    {/* <Highlight description={'Session'} type={'stopwatch'} value={createdOn} /> */}
-                    <Highlight description={'Viewers'} type={'count'} value={watchingNow} />
-                    <Highlight description={'Followers'} type={'count'} value={channelFollowers} />
-                    <Highlight description={'Subscribers'} type={'count'} value={subscriberCount} />
-                </div>
-                <div className='header-right'></div>
+        <>
+            <div className='modal' style={{ zIndex: modalZ ? 10 : -10 }}>
+                <span>show this instead</span>
+                <button onClick={closeModal}>close</button>
             </div>
-            <div className='main'>
-                <div className='main-left'>
-                    <StreamActivity title={'Stream Activity'} events={activityEvents()} />
+            <div id='Dashboard'>
+                <div className='header'>
+                    <div className='header-left'></div>
+                    <div className='highlights'>
+                        {/* <Highlight description={'Session'} type={'stopwatch'} value={createdOn} /> */}
+                        <Highlight description={'Viewers'} type={'count'} value={watchingNow} />
+                        <Highlight
+                            description={'Followers'}
+                            type={'count'}
+                            value={channelFollowers}
+                        />
+                        <Highlight
+                            description={'Subscribers'}
+                            type={'count'}
+                            value={subscriberCount}
+                        />
+                    </div>
+                    <div className='header-right'></div>
                 </div>
-                <div className='main-right'>
-                    <StreamChat title={'Stream Chat'} />
+                <div className='main'>
+                    <div className='main-left'>
+                        <StreamActivity title={'Stream Activity'} events={activityEvents()} />
+                    </div>
+                    <div className='main-right'>
+                        <StreamChat title={'Stream Chat'} />
+                    </div>
+                    <div></div>
                 </div>
-                <div></div>
+                <StreamInfo
+                    active={active}
+                    channel={channelName !== '' ? channelName : username}
+                    title={streamTitle}
+                    categories={streamCategories}
+                    likes={streamLikes}
+                    live={streamLive}
+                    dislikes={streamDislikes}
+                    home={home}
+                    play={startQuery}
+                    pause={stopQuery}
+                    settings={openModal}
+                />
             </div>
-            <StreamInfo
-                active={active}
-                channel={channelName}
-                title={streamTitle}
-                categories={streamCategories}
-                likes={streamLikes}
-                live={streamLive}
-                dislikes={streamDislikes}
-                play={startQuery}
-                pause={stopQuery}
-            />
-        </div>
+        </>
     );
 }
 

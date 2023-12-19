@@ -91,7 +91,9 @@ func (a *Api) query(url string) {
 	if err != nil {
 		// TODO: log error
 		fmt.Println("client.Request err:", err)
-		// a.Stop()
+		a.Stop()
+		runtime.EventsEmit(a.ctx, "QueryResponseError", "Failed to query API")
+		return
 	}
 
 	// resp := &rumblelivestreamlib.LivestreamResponse{}

@@ -1,28 +1,57 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { NavDashboard } from './Navigation';
+import { AddChannel, Config } from '../../wailsjs/go/main/App';
 import { Eye, EyeSlash } from '../assets/icons';
 import './SignIn.css';
+import ChannelList from '../components/ChannelList';
 
 function SignIn() {
     const navigate = useNavigate();
+    const [config, setConfig] = useState({ channels: [] });
     const [streamKey, setStreamKey] = useState('');
     const updateStreamKey = (event) => setStreamKey(event.target.value);
     const [showStreamKey, setShowStreamKey] = useState(false);
     const updateShowStreamKey = () => setShowStreamKey(!showStreamKey);
 
+    useEffect(() => {
+        Config()
+            .then((response) => {
+                console.log(response);
+                setConfig(response);
+            })
+            .catch((err) => {
+                console.log('error getting config', err);
+            });
+    }, []);
+
     const saveStreamKey = () => {
-        navigate(NavDashboard, { state: { streamKey: streamKey } });
+        AddChannel(streamKey)
+            .then((response) => {
+                console.log(response);
+                setConfig(response);
+                setStreamKey('');
+            })
+            .catch((err) => {
+                console.log('error adding channel', err);
+            });
+    };
+
+    const openStreamDashboard = (key) => {
+        navigate(NavDashboard, { state: { streamKey: key } });
     };
 
     return (
         <div id='SignIn'>
-            <div className='signin-title'>
+            <div className='signin-header'>
                 <span className='signin-title-text'>Rum Goggles</span>
                 <span className='signin-title-subtext'>Rumble Stream Dashboard</span>
             </div>
+            <div className='signin-center'>
+                <ChannelList channels={config.channels} openStreamDashboard={openStreamDashboard} />
+            </div>
             <div className='signin-input-box'>
-                <label className='signin-label'>Stream Key:</label>
+                <label className='signin-label'>Add Channel</label>
                 <div className='signin-input-button'>
                     <input
                         id='StreamKey'
@@ -43,7 +72,7 @@ function SignIn() {
                     </button>
                 </div>
             </div>
-            <div className='signin-title'></div>
+            <div className='signin-footer'></div>
         </div>
     );
 }

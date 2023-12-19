@@ -26,10 +26,10 @@ function StreamInfo(props) {
                 <div className='stream-info-subtitle'>
                     <div className='stream-info-categories'>
                         <span className='stream-info-category'>
-                            {props.live ? props.categories.primary.title : 'none'}
+                            {props.live ? props.categories.primary.title : 'primary'}
                         </span>
                         <span className='stream-info-category'>
-                            {props.live ? props.categories.secondary.title : 'none'}
+                            {props.live ? props.categories.secondary.title : 'secondary'}
                         </span>
                     </div>
                     <div className='stream-info-likes'>
@@ -54,17 +54,17 @@ function StreamInfo(props) {
             <div className='stream-info-footer'>
                 <div></div>
                 <div className='stream-info-controls'>
-                    <button className='stream-info-control-button'>
+                    <button className='stream-info-control-button' onClick={props.home}>
                         <img className='stream-info-control' src={House} />
                     </button>
                     <button className='stream-info-control-button'>
                         <img
-                            onClick={props.active ? props.pause : props.play}
                             className='stream-info-control'
+                            onClick={props.active ? props.pause : props.play}
                             src={props.active ? Pause : Play}
                         />
                     </button>
-                    <button className='stream-info-control-button'>
+                    <button className='stream-info-control-button' onClick={props.settings}>
                         <img className='stream-info-control' src={Gear} />
                     </button>
                 </div>

@@ -4,3 +4,5 @@ frontend/dist
 frontend/wailsjs
 
 .prettierignore
+
+config.json

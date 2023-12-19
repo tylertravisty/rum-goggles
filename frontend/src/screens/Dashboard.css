@@ -46,6 +46,16 @@
     height: 100%;
 }
 
+.modal {
+    background-color: white;
+    color: red;
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    top: 0;
+    left: 0;
+}
+
 .highlights {
     align-items: center;
     display: flex;

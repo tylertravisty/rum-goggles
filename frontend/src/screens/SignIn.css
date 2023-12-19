@@ -12,6 +12,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    padding: 10px 0px;
     width: 50%;
 }
 
@@ -53,6 +54,15 @@
     background-color: #77b23b;
 }
 
+.signin-center {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 50%;
+    width: 50%;
+}
+
 .signin-show {
     display: flex;
     align-items: center;
@@ -75,15 +85,30 @@
 }
 
 .signin-label {
+    color: #061726;
+    display: flex;
     font-family: sans-serif;
     font-weight: bold;
-    color: #061726;
-    justify-content: flex-start;
+    justify-content: center;
+    padding: 5px;
     text-transform: uppercase;
     width: 100%;
 }
 
-.signin-title {
+.signin-header {
+    align-items: center;
+    color: #061726;
+    display: flex;
+    flex-direction: column;
+    font-family: sans-serif;
+    font-weight: bold;
+    height: 10%;
+    justify-content: center;
+    margin: 20px;
+    text-align: center;
+}
+
+.signin-footer {
     align-items: center;
     color: #061726;
     display: flex;
