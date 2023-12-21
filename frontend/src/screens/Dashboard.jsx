@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Start, Stop } from '../../wailsjs/go/api/Api';
+import { StartApi, StopApi } from '../../wailsjs/go/main/App';
 
 import './Dashboard.css';
 import { EventsEmit, EventsOn } from '../../wailsjs/runtime/runtime';
@@ -17,7 +17,7 @@ function Dashboard() {
     const navigate = useNavigate();
     const [refresh, setRefresh] = useState(false);
     const [active, setActive] = useState(false);
-    const [streamKey, setStreamKey] = useState(location.state.streamKey);
+    const [cid, setCID] = useState(location.state.cid);
     const [username, setUsername] = useState('');
     const [channelName, setChannelName] = useState('');
     const [followers, setFollowers] = useState({});
@@ -41,7 +41,7 @@ function Dashboard() {
 
     useEffect(() => {
         console.log('use effect start');
-        Start(streamKey);
+        StartApi(cid);
         setActive(true);
 
         EventsOn('QueryResponse', (response) => {
@@ -77,7 +77,7 @@ function Dashboard() {
     }, []);
 
     const home = () => {
-        Stop()
+        StopApi()
             .then(() => setActive(false))
             .then(() => {
                 navigate(NavSignIn);
@@ -89,7 +89,7 @@ function Dashboard() {
 
     const startQuery = () => {
         console.log('start');
-        Start(streamKey)
+        StartApi(cid)
             .then(() => {
                 setActive(true);
             })
@@ -100,7 +100,7 @@ function Dashboard() {
 
     const stopQuery = () => {
         console.log('stop');
-        Stop().then(() => {
+        StopApi().then(() => {
             setActive(false);
         });
     };

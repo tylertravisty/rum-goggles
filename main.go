@@ -1,10 +1,8 @@
 package main
 
 import (
-	"context"
 	"embed"
 
-	"github.com/tylertravisty/rum-goggles/internal/api"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -15,7 +13,6 @@ var assets embed.FS
 
 func main() {
 	// Create an instance of the app structure
-	api := api.NewApi()
 	app := NewApp()
 
 	// Create application with options
@@ -27,13 +24,9 @@ func main() {
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 255, G: 255, B: 255, A: 255},
-		OnStartup: func(ctx context.Context) {
-			app.startup(ctx)
-			api.Startup(ctx)
-		},
+		OnStartup:        app.startup,
 		Bind: []interface{}{
 			app,
-			api,
 		},
 	})
 

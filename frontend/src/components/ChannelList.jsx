@@ -3,8 +3,13 @@ import './ChannelList.css';
 
 function ChannelList(props) {
     const sortChannelsAlpha = () => {
-        let sorted = [...props.channels].sort((a, b) =>
-            a.name.toLowerCase() > b.name.toLowerCase() ? 1 : -1
+        let keys = Object.keys(props.channels);
+        // let sorted = [...props.channels].sort((a, b) =>
+        //     a.name.toLowerCase() > b.name.toLowerCase() ? 1 : -1
+        // );
+
+        let sorted = [...keys].sort((a, b) =>
+            props.channels[a].name.toLowerCase() > props.channels[b].name.toLowerCase() ? 1 : -1
         );
         return sorted;
     };
@@ -17,9 +22,9 @@ function ChannelList(props) {
                     <div className='channel' style={index === 0 ? { borderTop: 'none' } : {}}>
                         <button
                             className='channel-button'
-                            onClick={() => props.openStreamDashboard(channel.api_url)}
+                            onClick={() => props.openStreamDashboard(props.channels[channel].id)}
                         >
-                            {channel.name}
+                            {props.channels[channel].name}
                         </button>
                     </div>
                 ))}

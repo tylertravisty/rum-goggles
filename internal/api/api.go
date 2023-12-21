@@ -11,27 +11,22 @@ import (
 )
 
 type Api struct {
-	ctx             context.Context
-	cancel          context.CancelFunc
-	cancelMu        sync.Mutex
-	querying        bool
-	queryingMu      sync.Mutex
-	queryInterval   time.Duration
-	queryIntervalMu sync.Mutex
+	ctx        context.Context
+	cancel     context.CancelFunc
+	cancelMu   sync.Mutex
+	querying   bool
+	queryingMu sync.Mutex
 }
 
 func NewApi() *Api {
-	return &Api{queryInterval: 10 * time.Second}
+	return &Api{}
 }
 
 func (a *Api) Startup(ctx context.Context) {
 	a.ctx = ctx
-	runtime.EventsOn(ctx, "StopQuery", func(optionalData ...interface{}) {
-		a.Stop()
-	})
 }
 
-func (a *Api) Start(url string) error {
+func (a *Api) Start(url string, interval time.Duration) error {
 	fmt.Println("Api.Start")
 	if url == "" {
 		return fmt.Errorf("empty stream key")
@@ -48,7 +43,7 @@ func (a *Api) Start(url string) error {
 		a.cancelMu.Lock()
 		a.cancel = cancel
 		a.cancelMu.Unlock()
-		a.start(ctx, url)
+		go a.start(ctx, url, interval)
 	} else {
 		fmt.Println("Querying already started")
 	}
@@ -65,12 +60,9 @@ func (a *Api) Stop() {
 	a.cancelMu.Unlock()
 }
 
-func (a *Api) start(ctx context.Context, url string) {
+func (a *Api) start(ctx context.Context, url string, interval time.Duration) {
 	for {
 		a.query(url)
-		a.queryIntervalMu.Lock()
-		interval := a.queryInterval
-		a.queryIntervalMu.Unlock()
 		timer := time.NewTimer(interval)
 		select {
 		case <-ctx.Done():

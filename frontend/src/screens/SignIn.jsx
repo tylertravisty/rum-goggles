@@ -8,7 +8,7 @@ import ChannelList from '../components/ChannelList';
 
 function SignIn() {
     const navigate = useNavigate();
-    const [config, setConfig] = useState({ channels: [] });
+    const [config, setConfig] = useState({ channels: {} });
     const [streamKey, setStreamKey] = useState('');
     const updateStreamKey = (event) => setStreamKey(event.target.value);
     const [showStreamKey, setShowStreamKey] = useState(false);
@@ -17,10 +17,10 @@ function SignIn() {
     useEffect(() => {
         Config()
             .then((response) => {
-                console.log(response);
                 setConfig(response);
             })
             .catch((err) => {
+                // TODO: display error to user
                 console.log('error getting config', err);
             });
     }, []);
@@ -37,8 +37,8 @@ function SignIn() {
             });
     };
 
-    const openStreamDashboard = (key) => {
-        navigate(NavDashboard, { state: { streamKey: key } });
+    const openStreamDashboard = (cid) => {
+        navigate(NavDashboard, { state: { cid: cid } });
     };
 
     return (

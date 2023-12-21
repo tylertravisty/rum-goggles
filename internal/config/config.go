@@ -4,15 +4,39 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
+
+	"github.com/tylertravisty/go-utils/random"
+)
+
+const (
+	CIDLen          = 8
+	DefaultInterval = 10
 )
 
 type Channel struct {
-	ApiUrl string `json:"api_url"`
-	Name   string `json:"name"`
+	ID       string        `json:"id"`
+	ApiUrl   string        `json:"api_url"`
+	Name     string        `json:"name"`
+	Interval time.Duration `json:"interval"`
+}
+
+func (a *App) NewChannel(url string, name string) (string, error) {
+	for {
+		id, err := random.String(CIDLen)
+		if err != nil {
+			return "", fmt.Errorf("config: error generating ID: %v", err)
+		}
+
+		if _, exists := a.Channels[id]; !exists {
+			a.Channels[id] = Channel{id, url, name, DefaultInterval}
+			return id, nil
+		}
+	}
 }
 
 type App struct {
-	Channels []Channel `json:"channels"`
+	Channels map[string]Channel `json:"channels"`
 }
 
 func Load(filepath string) (*App, error) {
