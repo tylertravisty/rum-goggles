@@ -11,6 +11,7 @@ import StreamActivity from '../components/StreamActivity';
 import StreamChat from '../components/StreamChat';
 import StreamInfo from '../components/StreamInfo';
 import { NavSignIn } from './Navigation';
+import { StreamChatMessageItem, StreamChatMessageModal } from '../components/StreamChatMessage';
 
 function Dashboard() {
     const location = useLocation();
@@ -131,6 +132,7 @@ function Dashboard() {
 
     return (
         <>
+            <StreamChatMessageModal />
             <div className='modal' style={{ zIndex: modalZ ? 10 : -10 }}>
                 <span>show this instead</span>
                 <button onClick={closeModal}>close</button>

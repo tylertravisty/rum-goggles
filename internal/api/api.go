@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -14,12 +15,14 @@ type Api struct {
 	ctx        context.Context
 	cancel     context.CancelFunc
 	cancelMu   sync.Mutex
+	logError   *log.Logger
+	logInfo    *log.Logger
 	querying   bool
 	queryingMu sync.Mutex
 }
 
-func NewApi() *Api {
-	return &Api{}
+func NewApi(logError *log.Logger, logInfo *log.Logger) *Api {
+	return &Api{logError: logError, logInfo: logInfo}
 }
 
 func (a *Api) Startup(ctx context.Context) {
@@ -27,7 +30,7 @@ func (a *Api) Startup(ctx context.Context) {
 }
 
 func (a *Api) Start(url string, interval time.Duration) error {
-	fmt.Println("Api.Start")
+	a.logInfo.Println("Api.Start")
 	if url == "" {
 		return fmt.Errorf("empty stream key")
 	}
@@ -38,21 +41,21 @@ func (a *Api) Start(url string, interval time.Duration) error {
 	a.queryingMu.Unlock()
 
 	if start {
-		fmt.Println("Starting querying")
+		a.logInfo.Println("Start querying")
 		ctx, cancel := context.WithCancel(context.Background())
 		a.cancelMu.Lock()
 		a.cancel = cancel
 		a.cancelMu.Unlock()
 		go a.start(ctx, url, interval)
 	} else {
-		fmt.Println("Querying already started")
+		a.logInfo.Println("Querying already started")
 	}
 
 	return nil
 }
 
 func (a *Api) Stop() {
-	fmt.Println("stop querying")
+	a.logInfo.Println("Stop querying")
 	a.cancelMu.Lock()
 	if a.cancel != nil {
 		a.cancel()
@@ -77,12 +80,12 @@ func (a *Api) start(ctx context.Context, url string, interval time.Duration) {
 }
 
 func (a *Api) query(url string) {
-	fmt.Println("QueryAPI")
+	a.logInfo.Println("QueryAPI")
 	client := rumblelivestreamlib.Client{StreamKey: url}
 	resp, err := client.Request()
 	if err != nil {
 		// TODO: log error
-		fmt.Println("client.Request err:", err)
+		a.logError.Println("api: error executing client request:", err)
 		a.Stop()
 		runtime.EventsEmit(a.ctx, "QueryResponseError", "Failed to query API")
 		return

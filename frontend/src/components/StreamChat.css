@@ -3,12 +3,34 @@
     height: 100%;
 }
 
+.stream-chat-add-button {
+    align-items: center;
+    background-color: rgba(6,23,38,1);
+    border: none;
+    display: flex;
+    justify-content: center;
+    padding: 0px;
+}
+
+.stream-chat-add-button:hover {
+    cursor: pointer;
+}
+
+.stream-chat-add-icon {
+    height: 24px;
+    width: 24px;
+}
+
 .stream-chat-header {
-    text-align: left;
+    align-items: center;
     background-color: rgba(6,23,38,1);
     border-bottom: 1px solid #495a6a;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
     height: 19px;
     padding: 10px 20px;
+    text-align: left;
 }
 
 .stream-chat-title {

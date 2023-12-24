@@ -9,6 +9,7 @@ import ChannelList from '../components/ChannelList';
 function SignIn() {
     const navigate = useNavigate();
     const [config, setConfig] = useState({ channels: {} });
+    const [addChannelError, setAddChannelError] = useState('');
     const [streamKey, setStreamKey] = useState('');
     const updateStreamKey = (event) => setStreamKey(event.target.value);
     const [showStreamKey, setShowStreamKey] = useState(false);
@@ -34,6 +35,7 @@ function SignIn() {
             })
             .catch((err) => {
                 console.log('error adding channel', err);
+                setAddChannelError(err);
             });
     };
 
@@ -52,6 +54,9 @@ function SignIn() {
             </div>
             <div className='signin-input-box'>
                 <label className='signin-label'>Add Channel</label>
+                <span className='add-channel-description'>
+                    Copy your API key from your Rumble account
+                </span>
                 <div className='signin-input-button'>
                     <input
                         id='StreamKey'
@@ -71,6 +76,9 @@ function SignIn() {
                         Save
                     </button>
                 </div>
+                <span className='add-channel-error'>
+                    {addChannelError ? addChannelError : '\u00A0'}
+                </span>
             </div>
             <div className='signin-footer'></div>
         </div>

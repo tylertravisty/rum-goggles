@@ -1,0 +1,21 @@
+.modal-chat {
+    align-items: center;
+    background-color: red;
+    color: black;
+    display: flex;
+    height: 50%;
+    justify-content: center;
+    opacity: 1;
+    width: 50%;
+}
+
+.modal-container {
+    align-items: center;
+    display: flex;
+    height: 100vh;
+    justify-content: center;
+    left: 0;
+    position: absolute;
+    top: 0;
+    width: 100vw;
+}

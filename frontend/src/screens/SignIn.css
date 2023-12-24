@@ -7,6 +7,19 @@
     height: 100vh;
 }
 
+.add-channel-description {
+    font-family: sans-serif;
+    font-size: 12px;
+    padding-bottom: 5px;
+}
+
+.add-channel-error {
+    color: red;
+    font-family: sans-serif;
+    font-size: 12px;
+    padding-top: 5px;
+}
+
 .signin-input-box {
     display: flex;
     flex-direction: column;
