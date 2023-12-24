@@ -36,7 +36,7 @@ func NewApp() *App {
 	app := &App{}
 	err := app.initLog()
 	if err != nil {
-		log.Fatal("error initializing log")
+		log.Fatal("error initializing log:", err)
 	}
 
 	app.api = api.NewApi(app.logError, app.logInfo)
