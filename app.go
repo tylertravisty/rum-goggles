@@ -57,12 +57,7 @@ func (a *App) startup(ctx context.Context) {
 }
 
 func (a *App) initLog() error {
-	fp, err := config.LogFile()
-	if err != nil {
-		return fmt.Errorf("error getting filepath for log file: %v", err)
-	}
-
-	f, err := os.OpenFile(fp, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	f, err := config.LogFile()
 	if err != nil {
 		return fmt.Errorf("error opening log file: %v", err)
 	}

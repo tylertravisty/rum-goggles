@@ -21,13 +21,25 @@ const (
 	logFile      = "logs.txt"
 )
 
-func LogFile() (string, error) {
+func LogFile() (*os.File, error) {
 	dir, err := buildConfigDir()
 	if err != nil {
-		return "", fmt.Errorf("config: error getting config directory: %v", err)
+		return nil, fmt.Errorf("config: error getting config directory: %v", err)
 	}
 
-	return filepath.Join(dir, logFile), nil
+	err = os.MkdirAll(dir, 0750)
+	if err != nil {
+		return nil, fmt.Errorf("config: error making config directory: %v", err)
+	}
+
+	fp := filepath.Join(dir, logFile)
+
+	f, err := os.OpenFile(fp, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("config: error opening log file: %v", err)
+	}
+
+	return f, nil
 }
 
 func buildConfigDir() (string, error) {
