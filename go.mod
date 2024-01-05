@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/tylertravisty/go-utils v0.0.0-20230524204414-6893ae548909
-	github.com/tylertravisty/rumble-livestream-lib-go v0.0.0-20231218182551-5ac1d6c01910
+	github.com/tylertravisty/rumble-livestream-lib-go v0.0.0-20240105170050-474340b082fc
 	github.com/wailsapp/wails/v2 v2.7.1
 )
 
@@ -25,7 +25,7 @@ require (
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
-	github.com/robertkrimen/otto v0.2.1 // indirect
+	github.com/robertkrimen/otto v0.3.0 // indirect
 	github.com/samber/lo v1.38.1 // indirect
 	github.com/tkrajina/go-reflector v0.5.6 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

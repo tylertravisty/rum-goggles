@@ -1,5 +1,11 @@
 # Doing
 
+New chat message modal:
+- submit button in modal component (check for button on click and button text)
+    - primary button (save)
+    - secondary button (delete)
+- on close: reset values (in stream chat message component)
+
 Create loading indicator before API is called
 
 If api query returns error:

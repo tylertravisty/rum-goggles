@@ -5,8 +5,10 @@ import { AddChannel, Config } from '../../wailsjs/go/main/App';
 import { Eye, EyeSlash } from '../assets/icons';
 import './SignIn.css';
 import ChannelList from '../components/ChannelList';
+import { SmallModal } from '../components/Modal';
 
 function SignIn() {
+    const [error, setError] = useState('');
     const navigate = useNavigate();
     const [config, setConfig] = useState({ channels: {} });
     const [addChannelError, setAddChannelError] = useState('');
@@ -20,9 +22,10 @@ function SignIn() {
             .then((response) => {
                 setConfig(response);
             })
-            .catch((err) => {
+            .catch((error) => {
                 // TODO: display error to user
-                console.log('error getting config', err);
+                setError('Error loading config: ' + error);
+                console.log('error getting config', error);
             });
     }, []);
 
@@ -33,9 +36,9 @@ function SignIn() {
                 setConfig(response);
                 setStreamKey('');
             })
-            .catch((err) => {
-                console.log('error adding channel', err);
-                setAddChannelError(err);
+            .catch((error) => {
+                console.log('error adding channel', error);
+                setAddChannelError(error);
             });
     };
 
@@ -44,44 +47,60 @@ function SignIn() {
     };
 
     return (
-        <div id='SignIn'>
-            <div className='signin-header'>
-                <span className='signin-title-text'>Rum Goggles</span>
-                <span className='signin-title-subtext'>Rumble Stream Dashboard</span>
-            </div>
-            <div className='signin-center'>
-                <ChannelList channels={config.channels} openStreamDashboard={openStreamDashboard} />
-            </div>
-            <div className='signin-input-box'>
-                <label className='signin-label'>Add Channel</label>
-                <span className='add-channel-description'>
-                    Copy your API key from your Rumble account
-                </span>
-                <div className='signin-input-button'>
-                    <input
-                        id='StreamKey'
-                        className='signin-input'
-                        onChange={updateStreamKey}
-                        placeholder='Stream Key'
-                        type={showStreamKey ? 'text' : 'password'}
-                        value={streamKey}
-                    />
-                    <button className='signin-show' onClick={updateShowStreamKey}>
-                        <img
-                            className='signin-show-icon'
-                            src={showStreamKey ? EyeSlash : Eye}
-                        ></img>
-                    </button>
-                    <button className='signin-button' onClick={saveStreamKey}>
-                        Save
-                    </button>
+        <>
+            {error !== '' && (
+                <SmallModal
+                    onClose={() => setError('')}
+                    show={error !== ''}
+                    style={{ minWidth: '300px', maxWidth: '200px', maxHeight: '200px' }}
+                    title={'Error'}
+                    message={error}
+                    submitButton={'OK'}
+                    onSubmit={() => setError('')}
+                />
+            )}
+            <div id='SignIn'>
+                <div className='signin-header'>
+                    <span className='signin-title-text'>Rum Goggles</span>
+                    <span className='signin-title-subtext'>Rumble Stream Dashboard</span>
                 </div>
-                <span className='add-channel-error'>
-                    {addChannelError ? addChannelError : '\u00A0'}
-                </span>
+                <div className='signin-center'>
+                    <ChannelList
+                        channels={config.channels}
+                        openStreamDashboard={openStreamDashboard}
+                    />
+                </div>
+                <div className='signin-input-box'>
+                    <label className='signin-label'>Add Channel</label>
+                    <span className='add-channel-description'>
+                        Copy your API key from your Rumble account
+                    </span>
+                    <div className='signin-input-button'>
+                        <input
+                            id='StreamKey'
+                            className='signin-input'
+                            onChange={updateStreamKey}
+                            placeholder='Stream Key'
+                            type={showStreamKey ? 'text' : 'password'}
+                            value={streamKey}
+                        />
+                        <button className='signin-show' onClick={updateShowStreamKey}>
+                            <img
+                                className='signin-show-icon'
+                                src={showStreamKey ? EyeSlash : Eye}
+                            ></img>
+                        </button>
+                        <button className='signin-button' onClick={saveStreamKey}>
+                            Save
+                        </button>
+                    </div>
+                    <span className='add-channel-error'>
+                        {addChannelError ? addChannelError : '\u00A0'}
+                    </span>
+                </div>
+                <div className='signin-footer'></div>
             </div>
-            <div className='signin-footer'></div>
-        </div>
+        </>
     );
 }
 

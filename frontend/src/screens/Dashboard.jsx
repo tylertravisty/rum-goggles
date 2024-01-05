@@ -1,10 +1,21 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { StartApi, StopApi } from '../../wailsjs/go/main/App';
+import {
+    AddChatMessage,
+    ChatBotMessages,
+    DeleteChatMessage,
+    NewChatBot,
+    ResetChatBot,
+    StartApi,
+    StopApi,
+    StopChatBotMessage,
+    UpdateChatMessage,
+} from '../../wailsjs/go/main/App';
 
 import './Dashboard.css';
 import { EventsEmit, EventsOn } from '../../wailsjs/runtime/runtime';
 import { Heart, Star } from '../assets/icons';
+import { ChatBotModal } from '../components/ChatBot';
 import Highlight from '../components/Highlight';
 import StreamEvent from '../components/StreamEvent';
 import StreamActivity from '../components/StreamActivity';
@@ -18,6 +29,13 @@ function Dashboard() {
     const navigate = useNavigate();
     const [refresh, setRefresh] = useState(false);
     const [active, setActive] = useState(false);
+    const [openChatBot, setOpenChatBot] = useState(false);
+    const [chatBotMessages, setChatBotMessages] = useState({});
+    const [chatAsChannel, setChatAsChannel] = useState(false);
+    const [chatID, setChatID] = useState('');
+    const [chatInterval, setChatInterval] = useState('');
+    const [chatMessage, setChatMessage] = useState('');
+    const [openChat, setOpenChat] = useState(false);
     const [cid, setCID] = useState(location.state.cid);
     const [username, setUsername] = useState('');
     const [channelName, setChannelName] = useState('');
@@ -38,12 +56,16 @@ function Dashboard() {
     const [streamTitle, setStreamTitle] = useState('');
     const [watchingNow, setWatchingNow] = useState(0);
     const [createdOn, setCreatedOn] = useState('');
-    const [modalZ, setModalZ] = useState(false);
 
     useEffect(() => {
         console.log('use effect start');
+        // TODO: catch error
         StartApi(cid);
         setActive(true);
+
+        ChatBotMessages(cid).then((messages) => {
+            setChatBotMessages(messages);
+        });
 
         EventsOn('QueryResponse', (response) => {
             console.log('query response received');
@@ -81,10 +103,13 @@ function Dashboard() {
         StopApi()
             .then(() => setActive(false))
             .then(() => {
+                ResetChatBot();
+            })
+            .then(() => {
                 navigate(NavSignIn);
             })
-            .catch((err) => {
-                console.log('Stop error:', err);
+            .catch((error) => {
+                console.log('Stop error:', error);
             });
     };
 
@@ -94,8 +119,8 @@ function Dashboard() {
             .then(() => {
                 setActive(true);
             })
-            .catch((err) => {
-                console.log('Start error:', err);
+            .catch((error) => {
+                console.log('Start error:', error);
             });
     };
 
@@ -122,21 +147,93 @@ function Dashboard() {
         return sorted;
     };
 
-    const openModal = () => {
-        setModalZ(true);
+    const newChat = () => {
+        setChatAsChannel(false);
+        setChatID('');
+        setChatInterval('');
+        setChatMessage('');
+        setOpenChat(true);
     };
 
-    const closeModal = () => {
-        setModalZ(false);
+    const editChat = (id, asChannel, interval, message) => {
+        setChatAsChannel(asChannel);
+        setChatInterval(interval);
+        setChatMessage(message);
+        setChatID(id);
+        setOpenChat(true);
+    };
+
+    const deleteChat = (id) => {
+        setOpenChat(false);
+        if (id === '') {
+            return;
+        }
+
+        StopChatBotMessage(id, cid)
+            .then(() => {
+                DeleteChatMessage(id, cid)
+                    .then((messages) => {
+                        setChatBotMessages(messages);
+                    })
+                    .catch((error) => {
+                        console.log('Error deleting message:', error);
+                    });
+            })
+            .catch((error) => {
+                console.log('Error stopping message:', error);
+            });
+    };
+
+    const saveChat = (id, asChannel, interval, message) => {
+        setOpenChat(false);
+        if (id === '') {
+            AddChatMessage(cid, asChannel, interval, message)
+                .then((messages) => {
+                    setChatBotMessages(messages);
+                })
+                .catch((error) => console.log('Error saving chat:', error));
+
+            return;
+        }
+
+        UpdateChatMessage(id, cid, asChannel, interval, message)
+            .then((messages) => {
+                console.log(messages);
+                setChatBotMessages(messages);
+            })
+            .catch((error) => console.log('Error saving chat:', error));
+    };
+
+    const saveChatBot = (username, password, url) => {
+        NewChatBot(cid, username, password, url)
+            .then(() => {
+                setOpenChatBot(false);
+            })
+            .catch((error) => console.log('Error creating new chat bot:', error));
     };
 
     return (
         <>
-            <StreamChatMessageModal />
-            <div className='modal' style={{ zIndex: modalZ ? 10 : -10 }}>
-                <span>show this instead</span>
-                <button onClick={closeModal}>close</button>
-            </div>
+            {openChat && (
+                <StreamChatMessageModal
+                    chatID={chatID}
+                    asChannel={chatAsChannel}
+                    interval={chatInterval}
+                    message={chatMessage}
+                    onClose={() => setOpenChat(false)}
+                    onDelete={deleteChat}
+                    onSubmit={saveChat}
+                    show={openChat}
+                />
+            )}
+            {openChatBot && (
+                <ChatBotModal
+                    cid={cid}
+                    onClose={() => setOpenChatBot(false)}
+                    onSubmit={saveChatBot}
+                    show={openChatBot}
+                />
+            )}
             <div id='Dashboard'>
                 <div className='header'>
                     <div className='header-left'></div>
@@ -161,7 +258,14 @@ function Dashboard() {
                         <StreamActivity title={'Stream Activity'} events={activityEvents()} />
                     </div>
                     <div className='main-right'>
-                        <StreamChat title={'Stream Chat'} />
+                        <StreamChat
+                            chats={chatBotMessages}
+                            onAdd={newChat}
+                            onEdit={editChat}
+                            onRefresh={() => setRefresh(!refresh)}
+                            onSettings={() => setOpenChatBot(true)}
+                            title={'Stream Chat'}
+                        />
                     </div>
                     <div></div>
                 </div>
@@ -176,7 +280,7 @@ function Dashboard() {
                     home={home}
                     play={startQuery}
                     pause={stopQuery}
-                    settings={openModal}
+                    // settings={openModal}
                 />
             </div>
         </>

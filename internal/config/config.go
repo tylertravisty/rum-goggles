@@ -73,13 +73,14 @@ func userDir() (string, error) {
 }
 
 type ChatMessage struct {
+	ID        string        `json:"id"`
 	AsChannel bool          `json:"as_channel"`
-	Text      string        `json:"text"`
 	Interval  time.Duration `json:"interval"`
+	Text      string        `json:"text"`
 }
 
 type ChatBot struct {
-	Messages []ChatMessage `json:"messages"`
+	Messages map[string]ChatMessage `json:"messages"`
 	// Commands []ChatCommand
 }
 
@@ -99,10 +100,63 @@ func (a *App) NewChannel(url string, name string) (string, error) {
 		}
 
 		if _, exists := a.Channels[id]; !exists {
-			a.Channels[id] = Channel{id, url, name, DefaultInterval, ChatBot{[]ChatMessage{}}}
+			a.Channels[id] = Channel{id, url, name, DefaultInterval, ChatBot{map[string]ChatMessage{}}}
 			return id, nil
 		}
 	}
+}
+
+func (a *App) DeleteChatMessage(id string, cid string) error {
+	channel, exists := a.Channels[cid]
+	if !exists {
+		return fmt.Errorf("config: channel does not exist")
+	}
+
+	_, exists = channel.ChatBot.Messages[id]
+	if !exists {
+		return fmt.Errorf("config: message does not exist")
+	}
+
+	delete(channel.ChatBot.Messages, id)
+
+	return nil
+}
+
+func (a *App) NewChatMessage(cid string, asChannel bool, interval time.Duration, message string) (string, error) {
+	if _, exists := a.Channels[cid]; !exists {
+		return "", fmt.Errorf("config: channel does not exist")
+	}
+
+	for {
+		id, err := random.String(CIDLen)
+		if err != nil {
+			return "", fmt.Errorf("config: error generating ID: %v", err)
+		}
+
+		if _, exists := a.Channels[cid].ChatBot.Messages[id]; !exists {
+			a.Channels[cid].ChatBot.Messages[id] = ChatMessage{id, asChannel, interval, message}
+			return id, nil
+		}
+	}
+}
+
+func (a *App) UpdateChatMessage(id string, cid string, asChannel bool, interval time.Duration, text string) (string, error) {
+	channel, exists := a.Channels[cid]
+	if !exists {
+		return "", fmt.Errorf("config: channel does not exist")
+	}
+
+	message, exists := channel.ChatBot.Messages[id]
+	if !exists {
+		return "", fmt.Errorf("config: message does not exist")
+	}
+
+	message.AsChannel = asChannel
+	message.Interval = interval
+	message.Text = text
+	channel.ChatBot.Messages[id] = message
+
+	return id, nil
 }
 
 type App struct {
