@@ -17,6 +17,7 @@ import { EventsEmit, EventsOn } from '../../wailsjs/runtime/runtime';
 import { Heart, Star } from '../assets/icons';
 import { ChatBotModal } from '../components/ChatBot';
 import Highlight from '../components/Highlight';
+import { SmallModal } from '../components/Modal';
 import StreamEvent from '../components/StreamEvent';
 import StreamActivity from '../components/StreamActivity';
 import StreamChat from '../components/StreamChat';
@@ -27,6 +28,7 @@ import { StreamChatMessageItem, StreamChatMessageModal } from '../components/Str
 function Dashboard() {
     const location = useLocation();
     const navigate = useNavigate();
+    const [error, setError] = useState('');
     const [refresh, setRefresh] = useState(false);
     const [active, setActive] = useState(false);
     const [openChatBot, setOpenChatBot] = useState(false);
@@ -94,6 +96,7 @@ function Dashboard() {
         });
 
         EventsOn('QueryResponseError', (error) => {
+            setError(error);
             console.log('Query response error:', error);
             setActive(false);
         });
@@ -109,6 +112,7 @@ function Dashboard() {
                 navigate(NavSignIn);
             })
             .catch((error) => {
+                setError(error);
                 console.log('Stop error:', error);
             });
     };
@@ -120,6 +124,7 @@ function Dashboard() {
                 setActive(true);
             })
             .catch((error) => {
+                setError(error);
                 console.log('Start error:', error);
             });
     };
@@ -176,10 +181,12 @@ function Dashboard() {
                         setChatBotMessages(messages);
                     })
                     .catch((error) => {
+                        setError(error);
                         console.log('Error deleting message:', error);
                     });
             })
             .catch((error) => {
+                setError(error);
                 console.log('Error stopping message:', error);
             });
     };
@@ -191,7 +198,10 @@ function Dashboard() {
                 .then((messages) => {
                     setChatBotMessages(messages);
                 })
-                .catch((error) => console.log('Error saving chat:', error));
+                .catch((error) => {
+                    setError(error);
+                    console.log('Error saving chat:', error);
+                });
 
             return;
         }
@@ -201,7 +211,10 @@ function Dashboard() {
                 console.log(messages);
                 setChatBotMessages(messages);
             })
-            .catch((error) => console.log('Error saving chat:', error));
+            .catch((error) => {
+                setError(error);
+                console.log('Error saving chat:', error);
+            });
     };
 
     const saveChatBot = (username, password, url) => {
@@ -262,7 +275,6 @@ function Dashboard() {
                             chats={chatBotMessages}
                             onAdd={newChat}
                             onEdit={editChat}
-                            onRefresh={() => setRefresh(!refresh)}
                             onSettings={() => setOpenChatBot(true)}
                             title={'Stream Chat'}
                         />
@@ -283,6 +295,17 @@ function Dashboard() {
                     // settings={openModal}
                 />
             </div>
+            {error !== '' && (
+                <SmallModal
+                    onClose={() => setError('')}
+                    show={error !== ''}
+                    style={{ minWidth: '300px', maxWidth: '200px', maxHeight: '200px' }}
+                    title={'Error'}
+                    message={error}
+                    submitButton={'OK'}
+                    onSubmit={() => setError('')}
+                />
+            )}
         </>
     );
 }

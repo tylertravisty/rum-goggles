@@ -39,5 +39,3 @@ require (
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
-
-// replace github.com/wailsapp/wails/v2 v2.7.1 => /home/tyler/dev/go/pkg/mod

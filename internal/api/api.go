@@ -84,7 +84,6 @@ func (a *Api) query(url string) {
 	client := rumblelivestreamlib.Client{StreamKey: url}
 	resp, err := client.Request()
 	if err != nil {
-		// TODO: log error
 		a.logError.Println("api: error executing client request:", err)
 		a.Stop()
 		runtime.EventsEmit(a.ctx, "QueryResponseError", "Failed to query API")
