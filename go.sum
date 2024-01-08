@@ -55,8 +55,8 @@ github.com/tkrajina/go-reflector v0.5.6 h1:hKQ0gyocG7vgMD2M3dRlYN6WBBOmdoOzJ6njQ
 github.com/tkrajina/go-reflector v0.5.6/go.mod h1:ECbqLgccecY5kPmPmXg1MrHW585yMcDkVl6IvJe64T4=
 github.com/tylertravisty/go-utils v0.0.0-20230524204414-6893ae548909 h1:xrjIFqzGQXlCrCdMPpW6+SodGFSlrQ3ZNUCr3f5tF1g=
 github.com/tylertravisty/go-utils v0.0.0-20230524204414-6893ae548909/go.mod h1:2W31Jhs9YSy7y500wsCOW0bcamGi9foQV1CKrfvfTxk=
-github.com/tylertravisty/rumble-livestream-lib-go v0.0.0-20240105170050-474340b082fc h1:JaoanQiZrYIbDx0UAYTNpyjhsgx7eWlTD7KJRqnrC8A=
-github.com/tylertravisty/rumble-livestream-lib-go v0.0.0-20240105170050-474340b082fc/go.mod h1:YrfW5N6xVozOzubzfNNsy+v0MIL2GPi9Kx3mTZ/Q9zI=
+github.com/tylertravisty/rumble-livestream-lib-go v0.1.0 h1:HQxuRkkA0iN2XyfK3KfoeBFonWCHZt8cy4GVKAiIIeM=
+github.com/tylertravisty/rumble-livestream-lib-go v0.1.0/go.mod h1:YrfW5N6xVozOzubzfNNsy+v0MIL2GPi9Kx3mTZ/Q9zI=
 github.com/valyala/bytebufferpool v1.0.0 h1:GqA5TC/0021Y/b9FG4Oi9Mr3q7XYx6KllzawFIhcdPw=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=
 github.com/valyala/fasttemplate v1.2.1/go.mod h1:KHLXt3tVN2HBp8eijSv/kGJopbvo7S+qRAEEKiv+SiQ=
