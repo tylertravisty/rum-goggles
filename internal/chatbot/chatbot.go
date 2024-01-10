@@ -124,7 +124,6 @@ func (cb *ChatBot) StopMessage(id string) error {
 	defer cb.messagesMu.Unlock()
 	m, exists := cb.messages[id]
 	if exists {
-		fmt.Println("IT EXISTS!!")
 		m.stop()
 		delete(cb.messages, id)
 	}

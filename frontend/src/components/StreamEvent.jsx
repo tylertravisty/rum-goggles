@@ -6,7 +6,7 @@ function StreamEvent(props) {
     const dateDate = (date) => {
         const options = { month: 'short' };
         let month = new Intl.DateTimeFormat('en-US', options).format(date);
-        let day = date.getDay();
+        let day = date.getDate();
         return month + ' ' + day;
     };
 
