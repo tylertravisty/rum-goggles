@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/tylertravisty/rum-goggles/internal/chatbot"
 	"github.com/tylertravisty/rum-goggles/internal/config"
 	rumblelivestreamlib "github.com/tylertravisty/rumble-livestream-lib-go"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type chat struct {
@@ -141,11 +143,11 @@ func (a *App) ChatBotMessages(cid string) (map[string]config.ChatMessage, error)
 	return channel.ChatBot.Messages, nil
 }
 
-func (a *App) AddChatMessage(cid string, asChannel bool, interval time.Duration, message string) (map[string]config.ChatMessage, error) {
+func (a *App) AddChatMessage(cid string, asChannel bool, command string, interval time.Duration, onCommand bool, text string, textFile string) (map[string]config.ChatMessage, error) {
 	var err error
 	a.cfgMu.Lock()
 	defer a.cfgMu.Unlock()
-	_, err = a.cfg.NewChatMessage(cid, asChannel, interval, message)
+	_, err = a.cfg.NewChatMessage(cid, asChannel, command, interval, onCommand, text, textFile)
 	if err != nil {
 		a.logError.Println("error creating new chat:", err)
 		return nil, fmt.Errorf("Error creating new chat message. Try again.")
@@ -192,11 +194,11 @@ func (a *App) DeleteChatMessage(mid string, cid string) (map[string]config.ChatM
 	return a.cfg.Channels[cid].ChatBot.Messages, nil
 }
 
-func (a *App) UpdateChatMessage(id string, cid string, asChannel bool, interval time.Duration, message string) (map[string]config.ChatMessage, error) {
+func (a *App) UpdateChatMessage(id string, cid string, asChannel bool, command string, interval time.Duration, onCommand bool, text string, textFile string) (map[string]config.ChatMessage, error) {
 	var err error
 	a.cfgMu.Lock()
 	defer a.cfgMu.Unlock()
-	_, err = a.cfg.UpdateChatMessage(id, cid, asChannel, interval, message)
+	_, err = a.cfg.UpdateChatMessage(id, cid, asChannel, command, interval, onCommand, text, textFile)
 	if err != nil {
 		a.logError.Println("error updating chat message:", err)
 		return nil, fmt.Errorf("Error updating chat message. Try again.")
@@ -240,7 +242,13 @@ func (a *App) NewChatBot(cid string, username string, password string, streamUrl
 	err = a.cb.Login(username, password)
 	if err != nil {
 		a.logError.Println("error logging into chat bot:", err)
-		return fmt.Errorf("Error logging in. Try Again.")
+		return fmt.Errorf("Error logging in. Try again.")
+	}
+
+	err = a.cb.StartChatStream()
+	if err != nil {
+		a.logError.Println("error starting chat stream:", err)
+		return fmt.Errorf("Error connecting to chat. Try again.")
 	}
 
 	// a.cb = cb
@@ -269,6 +277,11 @@ func (a *App) resetChatBot() error {
 	err := a.cb.StopAllMessages()
 	if err != nil {
 		return fmt.Errorf("error stopping all chat bot messages: %v", err)
+	}
+
+	err = a.cb.StopChatStream()
+	if err != nil {
+		return fmt.Errorf("error stopping chat stream: %v", err)
 	}
 
 	err = a.cb.Logout()
@@ -342,4 +355,23 @@ func (a *App) updateChatBotConfig(cfg config.ChatBot) {
 	if a.cb != nil {
 		a.cb.Cfg = cfg
 	}
+}
+
+func (a *App) OpenFileDialog() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		a.logError.Println("error getting home directory:", err)
+		return "", fmt.Errorf("Error opening file explorer. Try again.")
+	}
+	filepath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{DefaultDirectory: home})
+	if err != nil {
+		a.logError.Println("error opening file dialog:", err)
+		return "", fmt.Errorf("Error opening file explorer. Try again.")
+	}
+
+	return filepath, err
+}
+
+func (a *App) FilepathBase(path string) string {
+	return filepath.Base(path)
 }

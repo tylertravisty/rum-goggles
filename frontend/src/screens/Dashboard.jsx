@@ -21,9 +21,10 @@ import { SmallModal } from '../components/Modal';
 import StreamEvent from '../components/StreamEvent';
 import StreamActivity from '../components/StreamActivity';
 import StreamChat from '../components/StreamChat';
+import StreamChatBot from '../components/StreamChatBot';
 import StreamInfo from '../components/StreamInfo';
 import { NavSignIn } from './Navigation';
-import { StreamChatMessageItem, StreamChatMessageModal } from '../components/StreamChatMessage';
+import { StreamChatMessageModal } from '../components/StreamChatMessage';
 
 function Dashboard() {
     const location = useLocation();
@@ -34,9 +35,12 @@ function Dashboard() {
     const [openChatBot, setOpenChatBot] = useState(false);
     const [chatBotMessages, setChatBotMessages] = useState({});
     const [chatAsChannel, setChatAsChannel] = useState(false);
+    const [chatCommand, setChatCommand] = useState('');
+    const [chatOnCommand, setChatOnCommand] = useState(false);
     const [chatID, setChatID] = useState('');
     const [chatInterval, setChatInterval] = useState('');
-    const [chatMessage, setChatMessage] = useState('');
+    const [chatText, setChatText] = useState('');
+    const [chatTextFile, setChatTextFile] = useState('');
     const [openChat, setOpenChat] = useState(false);
     const [cid, setCID] = useState(location.state.cid);
     const [username, setUsername] = useState('');
@@ -66,6 +70,7 @@ function Dashboard() {
         setActive(true);
 
         ChatBotMessages(cid).then((messages) => {
+            console.log(messages);
             setChatBotMessages(messages);
         });
 
@@ -154,17 +159,23 @@ function Dashboard() {
 
     const newChat = () => {
         setChatAsChannel(false);
+        setChatCommand('');
         setChatID('');
         setChatInterval('');
-        setChatMessage('');
+        setChatText('');
+        setChatTextFile('');
+        setChatOnCommand(false);
         setOpenChat(true);
     };
 
-    const editChat = (id, asChannel, interval, message) => {
+    const editChat = (id, asChannel, command, interval, onCommand, text, textFile) => {
         setChatAsChannel(asChannel);
-        setChatInterval(interval);
-        setChatMessage(message);
+        setChatCommand(command);
         setChatID(id);
+        setChatInterval(interval);
+        setChatOnCommand(onCommand);
+        setChatText(text);
+        setChatTextFile(textFile);
         setOpenChat(true);
     };
 
@@ -191,10 +202,11 @@ function Dashboard() {
             });
     };
 
-    const saveChat = (id, asChannel, interval, message) => {
+    const saveChat = (id, asChannel, command, interval, onCommand, text, textFile) => {
+        console.log('save chat textfile:', textFile);
         setOpenChat(false);
         if (id === '') {
-            AddChatMessage(cid, asChannel, interval, message)
+            AddChatMessage(cid, asChannel, command, interval, onCommand, text, textFile)
                 .then((messages) => {
                     setChatBotMessages(messages);
                 })
@@ -206,7 +218,7 @@ function Dashboard() {
             return;
         }
 
-        UpdateChatMessage(id, cid, asChannel, interval, message)
+        UpdateChatMessage(id, cid, asChannel, command, interval, onCommand, text, textFile)
             .then((messages) => {
                 console.log(messages);
                 setChatBotMessages(messages);
@@ -231,12 +243,15 @@ function Dashboard() {
                 <StreamChatMessageModal
                     chatID={chatID}
                     asChannel={chatAsChannel}
+                    chatCommand={chatCommand}
+                    onCommand={chatOnCommand}
                     interval={chatInterval}
-                    message={chatMessage}
                     onClose={() => setOpenChat(false)}
                     onDelete={deleteChat}
                     onSubmit={saveChat}
                     show={openChat}
+                    text={chatText}
+                    textFile={chatTextFile}
                 />
             )}
             {openChatBot && (
@@ -270,16 +285,18 @@ function Dashboard() {
                     <div className='main-left'>
                         <StreamActivity title={'Stream Activity'} events={activityEvents()} />
                     </div>
+                    {/* <div className='main-middle'>
+                        <StreamChat title={'Stream Chat'} />
+                    </div> */}
                     <div className='main-right'>
-                        <StreamChat
+                        <StreamChatBot
                             chats={chatBotMessages}
                             onAdd={newChat}
                             onEdit={editChat}
                             onSettings={() => setOpenChatBot(true)}
-                            title={'Stream Chat'}
+                            title={'Chat Bot'}
                         />
                     </div>
-                    <div></div>
                 </div>
                 <StreamInfo
                     active={active}

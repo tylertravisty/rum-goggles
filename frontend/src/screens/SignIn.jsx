@@ -52,7 +52,7 @@ function SignIn() {
                 <SmallModal
                     onClose={() => setError('')}
                     show={error !== ''}
-                    style={{ minWidth: '300px', maxWidth: '200px', maxHeight: '200px' }}
+                    style={{ minWidth: '300px', maxWidth: '300px', maxHeight: '200px' }}
                     title={'Error'}
                     message={error}
                     submitButton={'OK'}

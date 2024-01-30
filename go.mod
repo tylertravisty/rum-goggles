@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/tylertravisty/go-utils v0.0.0-20230524204414-6893ae548909
-	github.com/tylertravisty/rumble-livestream-lib-go v0.1.0
+	github.com/tylertravisty/rumble-livestream-lib-go v0.2.0
 	github.com/wailsapp/wails/v2 v2.7.1
 )
 
@@ -24,6 +24,7 @@ require (
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/r3labs/sse/v2 v2.10.0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/robertkrimen/otto v0.3.0 // indirect
 	github.com/samber/lo v1.38.1 // indirect
@@ -32,10 +33,11 @@ require (
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/wailsapp/go-webview2 v1.0.10 // indirect
 	github.com/wailsapp/mimetype v1.4.1 // indirect
-	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
-	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/net v0.20.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
+	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )

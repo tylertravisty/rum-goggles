@@ -17,13 +17,11 @@ function Highlight(props) {
     };
 
     const stopwatchString = () => {
-        console.log(props.value);
         if (isNaN(Date.parse(props.value))) {
             return '--:--';
         }
         let now = new Date();
         let date = new Date(props.value);
-        console.log(date);
         let diff = now - date;
 
         let msMinute = 1000 * 60;

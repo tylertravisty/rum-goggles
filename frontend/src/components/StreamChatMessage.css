@@ -20,7 +20,7 @@
     width: 100vw;
 } */
 
-.chat-as-channel {
+.chat-toggle {
     align-items: center;
     display: flex;
     justify-content: space-between;
@@ -28,10 +28,47 @@
     width: 100%;
 }
 
-.chat-as-channel-label {
+.chat-toggle-label {
     color: white;
     font-family: sans-serif;
     padding-right: 10px;
+}
+
+.chat-command {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    padding-top: 10px;
+    width: 100%;
+}
+
+.chat-command-input {
+    border: none;
+    border-radius: 34px;
+    box-sizing: border-box;
+    font-family: monospace;
+    font-size: 16px;
+    outline: none;
+    padding: 5px 10px 5px 10px;
+    text-align: right;
+    width: 100%;
+}
+
+.chat-command-label {
+    color: white;
+    height: 29px;
+}
+
+.chat-command-input {
+    border: none;
+    border-radius: 34px;
+    box-sizing: border-box;
+    font-family: monospace;
+    font-size: 16px;
+    outline: none;
+    padding: 5px 10px 5px 10px;
+    text-align: center;
 }
 
 .chat-interval {
@@ -127,24 +164,31 @@
   align-items: center;
   display: flex;
   flex-direction: row;
-  justify-content: start;
+  justify-content: space-between;
   width: 100%;
 }
 
-.chat-as-channel-switch {
+.stream-chat-message-title-right {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.chat-toggle-switch {
   position: relative;
   display: inline-block;
   width: 50px;
   height: 24px;
 }
 
-.chat-as-channel-switch input { 
+.chat-toggle-switch input { 
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.chat-as-channel-slider {
+.chat-toggle-slider {
   position: absolute;
   cursor: pointer;
   top: 0;
@@ -156,7 +200,7 @@
   transition: .4s;
 }
 
-.chat-as-channel-slider:before {
+.chat-toggle-slider:before {
   position: absolute;
   content: "";
   height: 16px;
@@ -168,20 +212,117 @@
   transition: .4s;
 }
 
-input:checked + .chat-as-channel-slider {
+input:checked + .chat-toggle-slider {
   background-color: #85c742;
 }
 
-input:checked + .chat-as-channel-slider:before {
+input:checked + .chat-toggle-slider:before {
   -webkit-transform: translateX(26px);
   -ms-transform: translateX(26px);
   transform: translateX(26px);
 }
 /* Rounded sliders */
-.chat-as-channel-slider.round {
+.chat-toggle-slider.round {
   border-radius: 34px;
 }
 
-.chat-as-channel-slider.round:before {
+.chat-toggle-slider.round:before {
   border-radius: 50%;
 }
+
+.chat-toggle-check-container {
+  display: block;
+  position: relative;
+  padding-left: 16px;
+  margin-bottom: 15px;
+  cursor: pointer;
+  font-size: 15px;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.chat-toggle-check-container input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.chat-toggle-check {
+  border-radius: 3px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 15px;
+  width: 15px;
+  background-color: #495a6a;
+}
+
+.chat-toggle-check-container:hover input ~ .chat-toggle-check {
+  background-color: #495a6a;
+}
+
+.chat-toggle-check-container input:checked ~ .chat-toggle-check {
+  background-color: #85c742;
+}
+
+.chat-toggle-check:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.chat-toggle-check-container input:checked ~ .chat-toggle-check:after {
+  display: block;
+}
+
+.chat-toggle-check-container .chat-toggle-check:after {
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 3px 3px 0;
+  -webkit-transform: rotate(45deg);
+  -ms-transform: rotate(45deg);
+  transform: rotate(45deg);
+}
+
+.chat-toggle-check-label {
+  padding-right: 5px;
+}
+
+.choose-file {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.choose-file-button-box {
+  min-width: 100px;
+  width: 100px;
+}
+
+.choose-file-button {
+    background-color: #85c742;
+    border: none;
+    border-radius: 5px;
+    color: #061726;
+    cursor: pointer;
+    font-size: 16px;
+    text-decoration: none;
+    /* width: 200px; */
+    width: 100%;
+}
+
+.choose-file-path {
+    overflow: scroll;
+    margin-left: 5px;
+    white-space: nowrap;
+}
+

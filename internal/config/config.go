@@ -75,8 +75,11 @@ func userDir() (string, error) {
 type ChatMessage struct {
 	ID        string        `json:"id"`
 	AsChannel bool          `json:"as_channel"`
+	Command   string        `json:"command"`
 	Interval  time.Duration `json:"interval"`
+	OnCommand bool          `json:"on_command"`
 	Text      string        `json:"text"`
+	TextFile  string        `json:"text_file"`
 }
 
 type ChatBot struct {
@@ -122,7 +125,7 @@ func (a *App) DeleteChatMessage(id string, cid string) error {
 	return nil
 }
 
-func (a *App) NewChatMessage(cid string, asChannel bool, interval time.Duration, message string) (string, error) {
+func (a *App) NewChatMessage(cid string, asChannel bool, command string, interval time.Duration, onCommand bool, text string, textFile string) (string, error) {
 	if _, exists := a.Channels[cid]; !exists {
 		return "", fmt.Errorf("config: channel does not exist")
 	}
@@ -134,27 +137,38 @@ func (a *App) NewChatMessage(cid string, asChannel bool, interval time.Duration,
 		}
 
 		if _, exists := a.Channels[cid].ChatBot.Messages[id]; !exists {
-			a.Channels[cid].ChatBot.Messages[id] = ChatMessage{id, asChannel, interval, message}
+			a.Channels[cid].ChatBot.Messages[id] = ChatMessage{
+				ID:        id,
+				AsChannel: asChannel,
+				Command:   command,
+				Interval:  interval,
+				OnCommand: onCommand,
+				Text:      text,
+				TextFile:  textFile,
+			}
 			return id, nil
 		}
 	}
 }
 
-func (a *App) UpdateChatMessage(id string, cid string, asChannel bool, interval time.Duration, text string) (string, error) {
+func (a *App) UpdateChatMessage(id string, cid string, asChannel bool, command string, interval time.Duration, onCommand bool, text string, textFile string) (string, error) {
 	channel, exists := a.Channels[cid]
 	if !exists {
 		return "", fmt.Errorf("config: channel does not exist")
 	}
 
-	message, exists := channel.ChatBot.Messages[id]
+	cm, exists := channel.ChatBot.Messages[id]
 	if !exists {
 		return "", fmt.Errorf("config: message does not exist")
 	}
 
-	message.AsChannel = asChannel
-	message.Interval = interval
-	message.Text = text
-	channel.ChatBot.Messages[id] = message
+	cm.AsChannel = asChannel
+	cm.Command = command
+	cm.Interval = interval
+	cm.OnCommand = onCommand
+	cm.Text = text
+	cm.TextFile = textFile
+	channel.ChatBot.Messages[id] = cm
 
 	return id, nil
 }

@@ -1,10 +1,16 @@
 # Doing
 
-New chat message modal:
-- submit button in modal component (check for button on click and button text)
-    - primary button (save)
-    - secondary button (delete)
-- on close: reset values (in stream chat message component)
+Show error when choosing file "chooseFile"
+Show filename in chat bot list
+Add styling to choose file button
+
+Commands
+- specify for follower/subscriber/locals only/rants
+    - check badges for subscriber and locals
+
+Update
+- github.com/rhysd/go-github-selfupdate
+- github.com/inconshreveable/go-update
 
 Create loading indicator before API is called
 

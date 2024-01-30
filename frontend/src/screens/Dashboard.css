@@ -37,12 +37,18 @@
 
 .main-left {
     border-right: 1px solid #495a6a;
-    width: 30%;
+    width: 33%;
+    height: 100%;
+}
+
+.main-middle {
+    border-right: 1px solid #495a6a;
+    width: 33%;
     height: 100%;
 }
 
 .main-right {
-    width: 70%;
+    width: 67%;
     height: 100%;
 }
 
