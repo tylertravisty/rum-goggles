@@ -41,12 +41,21 @@ type message struct {
 }
 
 func NewChatBot(ctx context.Context, streamUrl string, cfg config.ChatBot, logError *log.Logger) (*ChatBot, error) {
-	client, err := rumblelivestreamlib.NewClient("", streamUrl)
+	client, err := rumblelivestreamlib.NewClient("", validUrl(streamUrl))
 	if err != nil {
 		return nil, fmt.Errorf("chatbot: error creating new client: %v", err)
 	}
 
 	return &ChatBot{ctx: ctx, client: client, Cfg: cfg, commands: map[string]chan rumblelivestreamlib.ChatView{}, logError: logError, messages: map[string]*message{}}, nil
+}
+
+func validUrl(url string) string {
+	valid := strings.TrimLeft(url, "http://")
+	if !strings.HasPrefix(valid, "https://") {
+		valid = "https://" + valid
+	}
+
+	return valid
 }
 
 func (cb *ChatBot) StartMessage(id string) error {
@@ -106,7 +115,6 @@ func (cb *ChatBot) StartMessage(id string) error {
 	return nil
 }
 
-// TODO: lock commands map, update commands map with channel, unlock commands map
 func (cb *ChatBot) startCommand(ctx context.Context, m *message) {
 	cb.commandsMu.Lock()
 	ch := make(chan rumblelivestreamlib.ChatView)
@@ -131,6 +139,7 @@ func (cb *ChatBot) startCommand(ctx context.Context, m *message) {
 				cb.logError.Println("error sending chat:", err)
 				cb.StopMessage(m.id)
 				runtime.EventsEmit(cb.ctx, "ChatBotCommandError-"+m.id, m.id)
+				return
 			} else {
 				prev = now
 				runtime.EventsEmit(cb.ctx, "ChatBotCommandActive-"+m.id, m.id)

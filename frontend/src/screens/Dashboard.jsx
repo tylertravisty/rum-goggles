@@ -34,6 +34,7 @@ function Dashboard() {
     const [active, setActive] = useState(false);
     const [openChatBot, setOpenChatBot] = useState(false);
     const [chatBotMessages, setChatBotMessages] = useState({});
+    const [chatBotMessagesActive, setChatBotMessagesActive] = useState({});
     const [chatAsChannel, setChatAsChannel] = useState(false);
     const [chatCommand, setChatCommand] = useState('');
     const [chatOnCommand, setChatOnCommand] = useState(false);
@@ -75,7 +76,7 @@ function Dashboard() {
         });
 
         EventsOn('QueryResponse', (response) => {
-            console.log('query response received');
+            // console.log('query response received');
             setRefresh(!refresh);
             setActive(true);
             setUsername(response.username);
@@ -102,7 +103,7 @@ function Dashboard() {
 
         EventsOn('QueryResponseError', (error) => {
             setError(error);
-            console.log('Query response error:', error);
+            // console.log('Query response error:', error);
             setActive(false);
         });
     }, []);
@@ -237,6 +238,21 @@ function Dashboard() {
             .catch((error) => console.log('Error creating new chat bot:', error));
     };
 
+    const activateMessage = (id, active) => {
+        // console.log('Dashboard activateMessage:', id, active);
+        chatBotMessagesActive[id] = active;
+    };
+
+    const isMessageActive = (id) => {
+        // console.log('is Message active start', id, chatBotMessagesActive[id]);
+        if (chatBotMessagesActive[id] === undefined) {
+            chatBotMessagesActive[id] = false;
+        }
+
+        // console.log('is Message active after', id, chatBotMessagesActive[id]);
+        return chatBotMessagesActive[id];
+    };
+
     return (
         <>
             {openChat && (
@@ -290,11 +306,13 @@ function Dashboard() {
                     </div> */}
                     <div className='main-right'>
                         <StreamChatBot
+                            activateMessage={activateMessage}
                             chats={chatBotMessages}
                             onAdd={newChat}
                             onEdit={editChat}
                             onSettings={() => setOpenChatBot(true)}
                             title={'Chat Bot'}
+                            isMessageActive={isMessageActive}
                         />
                     </div>
                 </div>

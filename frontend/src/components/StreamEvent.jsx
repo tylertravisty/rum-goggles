@@ -44,6 +44,9 @@ function StreamEvent(props) {
         let hours = hours24 % 12 || 12;
 
         let minutes = date.getMinutes();
+        if (minutes < 10) {
+            minutes = '0' + minutes;
+        }
 
         let mer = 'pm';
         if (hours24 < 12) {

@@ -236,7 +236,7 @@ func (a *App) NewChatBot(cid string, username string, password string, streamUrl
 	a.cb, err = chatbot.NewChatBot(a.ctx, streamUrl, channel.ChatBot, a.logError)
 	if err != nil {
 		a.logError.Println("error creating new chat bot:", err)
-		return fmt.Errorf("Error creating new chat bot. Try Again.")
+		return fmt.Errorf("Error creating new chat bot. Try again.")
 	}
 
 	err = a.cb.Login(username, password)

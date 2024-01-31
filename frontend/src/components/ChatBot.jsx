@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { Modal } from './Modal';
+import { Modal, SmallModal } from './Modal';
 
 import { NewChatBot } from '../../wailsjs/go/main/App';
 
@@ -73,56 +73,67 @@ export function ChatBotModal(props) {
     };
 
     return (
-        <Modal
-            onClose={close}
-            show={props.show}
-            style={{ minWidth: '300px', maxWidth: '400px' }}
-            cancelButton={'Cancel'}
-            onCancel={close}
-            submitButton={saving ? 'Saving' : 'Save'}
-            onSubmit={
-                saving
-                    ? () => {
-                          console.log('Saving');
-                      }
-                    : submit
-            }
-            title={'Chat Bot'}
-        >
-            <div className='chat-bot-modal'>
-                {error && <span className='chat-bot-error'>{error}</span>}
-                <div className='chat-bot-setting'>
-                    <span className='chat-bot-setting-label'>Username</span>
-                    <input
-                        className='chat-bot-setting-input'
-                        onChange={updateUsername}
-                        placeholder='Username'
-                        type='text'
-                        value={username}
-                    />
+        <>
+            <Modal
+                onClose={close}
+                show={props.show}
+                style={{ minWidth: '300px', maxWidth: '400px' }}
+                cancelButton={'Cancel'}
+                onCancel={close}
+                submitButton={saving ? 'Saving' : 'Save'}
+                onSubmit={
+                    saving
+                        ? () => {
+                              console.log('Saving');
+                          }
+                        : submit
+                }
+                title={'Chat Bot'}
+            >
+                <div className='chat-bot-modal'>
+                    {/* {error && <span className='chat-bot-error'>{error}</span>} */}
+                    <div className='chat-bot-setting'>
+                        <span className='chat-bot-setting-label'>Username</span>
+                        <input
+                            className='chat-bot-setting-input'
+                            onChange={updateUsername}
+                            placeholder='Username'
+                            type='text'
+                            value={username}
+                        />
+                    </div>
+                    <div className='chat-bot-setting'>
+                        <span className='chat-bot-setting-label'>Password</span>
+                        <input
+                            className='chat-bot-setting-input'
+                            onChange={updatePassword}
+                            placeholder='Password'
+                            type='password'
+                            value={password}
+                        />
+                    </div>
+                    <div className='chat-bot-setting'>
+                        <span className='chat-bot-setting-label'>Stream URL</span>
+                        <input
+                            className='chat-bot-setting-input'
+                            onChange={updateUrl}
+                            placeholder='https://'
+                            type='text'
+                            value={url}
+                        />
+                    </div>
                 </div>
-                <div className='chat-bot-setting'>
-                    <span className='chat-bot-setting-label'>Password</span>
-                    <input
-                        className='chat-bot-setting-input'
-                        onChange={updatePassword}
-                        placeholder='Password'
-                        type='password'
-                        value={password}
-                    />
-                </div>
-                <div className='chat-bot-setting'>
-                    <span className='chat-bot-setting-label'>Stream URL</span>
-                    <input
-                        className='chat-bot-setting-input'
-                        onChange={updateUrl}
-                        placeholder='https://'
-                        type='text'
-                        value={url}
-                    />
-                </div>
-            </div>
-        </Modal>
+            </Modal>
+            <SmallModal
+                onClose={() => setError('')}
+                show={error !== ''}
+                style={{ minWidth: '300px', maxWidth: '300px', maxHeight: '100px' }}
+                title={'Error'}
+                message={error}
+                submitButton={'OK'}
+                onSubmit={() => setError('')}
+            />
+        </>
     );
 }
 

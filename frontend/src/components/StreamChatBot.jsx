@@ -36,7 +36,12 @@ function StreamChatBot(props) {
             </div>
             <div className='stream-chatbot-list'>
                 {sortChatsAlpha().map((chat, index) => (
-                    <StreamChatItem chat={props.chats[chat]} onItemClick={props.onEdit} />
+                    <StreamChatItem
+                        activateMessage={props.activateMessage}
+                        chat={props.chats[chat]}
+                        isMessageActive={props.isMessageActive}
+                        onItemClick={props.onEdit}
+                    />
                 ))}
             </div>
         </div>
@@ -46,9 +51,9 @@ function StreamChatBot(props) {
 export default StreamChatBot;
 
 function StreamChatItem(props) {
-    const [active, setActive] = useState(props.chat.active);
+    const [active, setActive] = useState(props.isMessageActive(props.chat.id));
     const [error, setError] = useState('');
-    const [filename, setFilename] = useState('');
+    const [filename, setFilename] = useState(props.chat.text_file);
 
     useEffect(() => {
         if (props.chat.text_file !== '') {
@@ -56,11 +61,13 @@ function StreamChatItem(props) {
                 setFilename(name);
             });
         }
-    }, []);
+        setActive(props.isMessageActive(props.chat.id));
+    }, [props]);
 
     const changeActive = (bool) => {
-        console.log('ChangeActive:', bool);
-        props.chat.active = bool;
+        // console.log('ChangeActive:', bool);
+        // props.chat.active = bool;
+        props.activateMessage(props.chat.id, bool);
         setActive(bool);
     };
 
