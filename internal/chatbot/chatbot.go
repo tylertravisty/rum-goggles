@@ -50,7 +50,7 @@ func NewChatBot(ctx context.Context, streamUrl string, cfg config.ChatBot, logEr
 }
 
 func validUrl(url string) string {
-	valid := strings.TrimLeft(url, "http://")
+	valid := url
 	if !strings.HasPrefix(valid, "https://") {
 		valid = "https://" + valid
 	}
