@@ -35,7 +35,7 @@ jobs:
           submodules: recursive
 
       - name: Build wails
-        uses: tylertravisty/wails-build-action
+        uses: tylertravisty/wails-build-action@v0.1.0
         id: build
         with:
           build-name: ${{ matrix.build.name }}
