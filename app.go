@@ -143,11 +143,11 @@ func (a *App) ChatBotMessages(cid string) (map[string]config.ChatMessage, error)
 	return channel.ChatBot.Messages, nil
 }
 
-func (a *App) AddChatMessage(cid string, asChannel bool, command string, interval time.Duration, onCommand bool, text string, textFile string) (map[string]config.ChatMessage, error) {
+func (a *App) AddChatMessage(cid string, cm config.ChatMessage) (map[string]config.ChatMessage, error) {
 	var err error
 	a.cfgMu.Lock()
 	defer a.cfgMu.Unlock()
-	_, err = a.cfg.NewChatMessage(cid, asChannel, command, interval, onCommand, text, textFile)
+	_, err = a.cfg.NewChatMessage(cid, cm)
 	if err != nil {
 		a.logError.Println("error creating new chat:", err)
 		return nil, fmt.Errorf("Error creating new chat message. Try again.")
@@ -164,10 +164,10 @@ func (a *App) AddChatMessage(cid string, asChannel bool, command string, interva
 	return a.cfg.Channels[cid].ChatBot.Messages, nil
 }
 
-func (a *App) DeleteChatMessage(mid string, cid string) (map[string]config.ChatMessage, error) {
+func (a *App) DeleteChatMessage(cid string, cm config.ChatMessage) (map[string]config.ChatMessage, error) {
 	a.cbMu.Lock()
 	if a.cb != nil {
-		err := a.cb.StopMessage(mid)
+		err := a.cb.StopMessage(cm.ID)
 		if err != nil {
 			a.logError.Println("error stopping chat bot message:", err)
 			return nil, fmt.Errorf("Error stopping message. Try Again.")
@@ -177,7 +177,7 @@ func (a *App) DeleteChatMessage(mid string, cid string) (map[string]config.ChatM
 
 	a.cfgMu.Lock()
 	defer a.cfgMu.Unlock()
-	err := a.cfg.DeleteChatMessage(mid, cid)
+	err := a.cfg.DeleteChatMessage(cid, cm)
 	if err != nil {
 		a.logError.Println("error deleting chat message:", err)
 		return nil, fmt.Errorf("Error deleting chat message. Try again.")
@@ -194,11 +194,11 @@ func (a *App) DeleteChatMessage(mid string, cid string) (map[string]config.ChatM
 	return a.cfg.Channels[cid].ChatBot.Messages, nil
 }
 
-func (a *App) UpdateChatMessage(id string, cid string, asChannel bool, command string, interval time.Duration, onCommand bool, text string, textFile string) (map[string]config.ChatMessage, error) {
+func (a *App) UpdateChatMessage(cid string, cm config.ChatMessage) (map[string]config.ChatMessage, error) {
 	var err error
 	a.cfgMu.Lock()
 	defer a.cfgMu.Unlock()
-	_, err = a.cfg.UpdateChatMessage(id, cid, asChannel, command, interval, onCommand, text, textFile)
+	_, err = a.cfg.UpdateChatMessage(cid, cm)
 	if err != nil {
 		a.logError.Println("error updating chat message:", err)
 		return nil, fmt.Errorf("Error updating chat message. Try again.")

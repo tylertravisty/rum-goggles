@@ -2,9 +2,11 @@ package chatbot
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"crypto/rand"
 	"fmt"
+	"html/template"
 	"log"
 	"math/big"
 	"os"
@@ -29,15 +31,18 @@ type ChatBot struct {
 }
 
 type message struct {
-	cancel       context.CancelFunc
-	cancelMu     sync.Mutex
-	asChannel    bool
-	command      string
-	id           string
-	interval     time.Duration
-	onCommand    bool
-	text         string
-	textFromFile []string
+	cancel              context.CancelFunc
+	cancelMu            sync.Mutex
+	asChannel           bool
+	command             string
+	id                  string
+	interval            time.Duration
+	onCommand           bool
+	onCommandFollower   bool
+	onCommandRantAmount int
+	OnCommandSubscriber bool
+	text                string
+	textFromFile        []string
 }
 
 func NewChatBot(ctx context.Context, streamUrl string, cfg config.ChatBot, logError *log.Logger) (*ChatBot, error) {
@@ -91,13 +96,16 @@ func (cb *ChatBot) StartMessage(id string) error {
 	}
 
 	m = &message{
-		asChannel:    msg.AsChannel,
-		command:      msg.Command,
-		id:           msg.ID,
-		interval:     msg.Interval,
-		onCommand:    msg.OnCommand,
-		text:         msg.Text,
-		textFromFile: textFromFile,
+		asChannel:           msg.AsChannel,
+		command:             msg.Command,
+		id:                  msg.ID,
+		interval:            msg.Interval,
+		onCommand:           msg.OnCommand,
+		onCommandFollower:   msg.OnCommandFollower,
+		onCommandRantAmount: msg.OnCommandRantAmount,
+		OnCommandSubscriber: msg.OnCommandSubscriber,
+		text:                msg.Text,
+		textFromFile:        textFromFile,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -127,14 +135,37 @@ func (cb *ChatBot) startCommand(ctx context.Context, m *message) {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ch:
+		case cv := <-ch:
+			if m.onCommandFollower && !cv.IsFollower {
+				break
+			}
+
+			subscriber := false
+			for _, badge := range cv.Badges {
+				if badge == "recurring_subscription" || badge == "locals_supporter" {
+					subscriber = true
+				}
+			}
+
+			if m.OnCommandSubscriber && !subscriber {
+				break
+			}
+
+			// if m.onCommandRantAmount > 0 && cv.Rant < m.onCommandRantAmount * 100 {
+			// 	break
+			// }
+
+			if cv.Rant < m.onCommandRantAmount*100 {
+				break
+			}
+
 			// TODO: parse !command
 			now := time.Now()
 			if now.Sub(prev) < m.interval*time.Second {
 				break
 			}
 
-			err := cb.chat(m)
+			err := cb.chatCommand(m, cv)
 			if err != nil {
 				cb.logError.Println("error sending chat:", err)
 				cb.StopMessage(m.id)
@@ -169,6 +200,51 @@ func (cb *ChatBot) startMessage(ctx context.Context, m *message) {
 		case <-timer.C:
 		}
 	}
+}
+
+func (cb *ChatBot) chatCommand(m *message, cv rumblelivestreamlib.ChatView) error {
+	if cb.client == nil {
+		return fmt.Errorf("client is nil")
+	}
+
+	msgText := m.text
+	if len(m.textFromFile) > 0 {
+		n, err := rand.Int(rand.Reader, big.NewInt(int64(len(m.textFromFile))))
+		if err != nil {
+			return fmt.Errorf("error generating random number: %v", err)
+		}
+
+		msgText = m.textFromFile[n.Int64()]
+	}
+
+	tmpl, err := template.New("chat").Parse(msgText)
+	if err != nil {
+		return fmt.Errorf("error creating template: %v", err)
+	}
+
+	fields := struct {
+		ChannelName string
+		Username    string
+		Rant        int
+	}{
+		ChannelName: cv.ChannelName,
+		Username:    cv.Username,
+		Rant:        cv.Rant / 100,
+	}
+
+	var textB bytes.Buffer
+	err = tmpl.Execute(&textB, fields)
+	if err != nil {
+		return fmt.Errorf("error executing template: %v", err)
+	}
+	text := textB.String()
+
+	err = cb.client.Chat(m.asChannel, text)
+	if err != nil {
+		return fmt.Errorf("error sending chat: %v", err)
+	}
+
+	return nil
 }
 
 func (cb *ChatBot) chat(m *message) error {

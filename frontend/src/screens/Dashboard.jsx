@@ -38,6 +38,9 @@ function Dashboard() {
     const [chatAsChannel, setChatAsChannel] = useState(false);
     const [chatCommand, setChatCommand] = useState('');
     const [chatOnCommand, setChatOnCommand] = useState(false);
+    const [chatOnCommandFollower, setChatOnCommandFollower] = useState(false);
+    const [chatOnCommandRantAmount, setChatOnCommandRantAmount] = useState(0);
+    const [chatOnCommandSubscriber, setChatOnCommandSubscriber] = useState(false);
     const [chatID, setChatID] = useState('');
     const [chatInterval, setChatInterval] = useState('');
     const [chatText, setChatText] = useState('');
@@ -166,17 +169,24 @@ function Dashboard() {
         setChatText('');
         setChatTextFile('');
         setChatOnCommand(false);
+        setChatOnCommandFollower(false);
+        setChatOnCommandRantAmount(0);
+        setChatOnCommandSubscriber(false);
         setOpenChat(true);
     };
 
-    const editChat = (id, asChannel, command, interval, onCommand, text, textFile) => {
-        setChatAsChannel(asChannel);
-        setChatCommand(command);
-        setChatID(id);
-        setChatInterval(interval);
-        setChatOnCommand(onCommand);
-        setChatText(text);
-        setChatTextFile(textFile);
+    // const editChat = (id, asChannel, command, interval, onCommand, text, textFile) => {
+    const editChat = (message) => {
+        setChatAsChannel(message.as_channel);
+        setChatCommand(message.command);
+        setChatID(message.id);
+        setChatInterval(message.interval);
+        setChatOnCommand(message.on_command);
+        setChatOnCommandFollower(message.on_command_follower);
+        setChatOnCommandRantAmount(message.on_command_rant_amount);
+        setChatOnCommandSubscriber(message.on_command_subscriber);
+        setChatText(message.text);
+        setChatTextFile(message.text_file);
         setOpenChat(true);
     };
 
@@ -186,28 +196,31 @@ function Dashboard() {
             return;
         }
 
-        StopChatBotMessage(id, cid)
+        let message = { id: id };
+        StopChatBotMessage(id)
             .then(() => {
-                DeleteChatMessage(id, cid)
+                // DeleteChatMessage(id, cid)
+                DeleteChatMessage(cid, message)
                     .then((messages) => {
                         setChatBotMessages(messages);
                     })
                     .catch((error) => {
                         setError(error);
-                        console.log('Error deleting message:', error);
+                        // console.log('Error deleting message:', error);
                     });
             })
             .catch((error) => {
                 setError(error);
-                console.log('Error stopping message:', error);
+                // console.log('Error stopping message:', error);
             });
     };
 
-    const saveChat = (id, asChannel, command, interval, onCommand, text, textFile) => {
-        console.log('save chat textfile:', textFile);
+    // const saveChat = (id, asChannel, command, interval, onCommand, text, textFile) => {
+    const saveChat = (message) => {
         setOpenChat(false);
-        if (id === '') {
-            AddChatMessage(cid, asChannel, command, interval, onCommand, text, textFile)
+        if (message.id === '') {
+            // AddChatMessage(cid, asChannel, command, interval, onCommand, text, textFile)
+            AddChatMessage(cid, message)
                 .then((messages) => {
                     setChatBotMessages(messages);
                 })
@@ -219,7 +232,8 @@ function Dashboard() {
             return;
         }
 
-        UpdateChatMessage(id, cid, asChannel, command, interval, onCommand, text, textFile)
+        // UpdateChatMessage(id, cid, asChannel, command, interval, onCommand, text, textFile)
+        UpdateChatMessage(cid, message)
             .then((messages) => {
                 console.log(messages);
                 setChatBotMessages(messages);
@@ -261,6 +275,9 @@ function Dashboard() {
                     asChannel={chatAsChannel}
                     chatCommand={chatCommand}
                     onCommand={chatOnCommand}
+                    onCommandFollower={chatOnCommandFollower}
+                    onCommandRantAmount={chatOnCommandRantAmount}
+                    onCommandSubscriber={chatOnCommandSubscriber}
                     interval={chatInterval}
                     onClose={() => setOpenChat(false)}
                     onDelete={deleteChat}

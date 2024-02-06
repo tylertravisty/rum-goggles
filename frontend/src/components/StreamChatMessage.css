@@ -51,8 +51,22 @@
     font-size: 16px;
     outline: none;
     padding: 5px 10px 5px 10px;
-    text-align: right;
+    text-align: center;
     width: 100%;
+}
+
+.chat-command-option {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.chat-command-options {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
 }
 
 .chat-command-label {
@@ -60,15 +74,29 @@
     height: 29px;
 }
 
-.chat-command-input {
+.chat-command-rant-amount {
     border: none;
-    border-radius: 34px;
+    /* border-radius: 34px; */
     box-sizing: border-box;
     font-family: monospace;
     font-size: 16px;
     outline: none;
-    padding: 5px 10px 5px 10px;
+    /* padding: 5px 10px 5px 10px; */
+    padding: 5px;
     text-align: center;
+}
+
+.chat-command-rant-amount-label {
+    color: white;
+    font-family: sans-serif;
+    padding-right: 10px;
+}
+
+.chat-command-rant-amount-symbol {
+    color: white;
+    font-family: sans-serif;
+    font-size: 20px;
+    padding-right: 1px;
 }
 
 .chat-interval {
@@ -292,6 +320,8 @@ input:checked + .chat-toggle-slider:before {
 }
 
 .chat-toggle-check-label {
+  color: white;
+  font-family: sans-serif;
   padding-right: 5px;
 }
 

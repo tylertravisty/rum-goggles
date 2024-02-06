@@ -11,6 +11,9 @@ export function StreamChatMessageModal(props) {
     const [chatCommand, setChatCommand] = useState(props.chatCommand);
     const [error, setError] = useState('');
     const [onCommand, setOnCommand] = useState(props.onCommand);
+    const [onCommandFollower, setOnCommandFollower] = useState(props.onCommandFollower);
+    const [onCommandRantAmount, setOnCommandRantAmount] = useState(props.onCommandRantAmount);
+    const [onCommandSubscriber, setOnCommandSubscriber] = useState(props.onCommandSubscriber);
     const [openDelete, setOpenDelete] = useState(false);
     const [readFromFile, setReadFromFile] = useState(false);
     const [text, setText] = useState(props.text);
@@ -22,6 +25,9 @@ export function StreamChatMessageModal(props) {
         console.log('update chat');
         setAsChannel(props.asChannel);
         setOnCommand(props.onCommand);
+        setOnCommandFollower(props.onCommandFollower);
+        setOnCommandSubscriber(props.onCommandSubscriber);
+        setOnCommandRantAmount(props.onCommandRantAmount);
         setError('');
         setReadFromFile(props.textFile !== '');
         setText(props.text);
@@ -37,6 +43,9 @@ export function StreamChatMessageModal(props) {
         setText('');
         setTextFile('');
         setOnCommand(false);
+        setOnCommandFollower(false);
+        setOnCommandSubscriber(false);
+        setOnCommandRantAmount(0);
         setTimer('');
     };
 
@@ -66,14 +75,20 @@ export function StreamChatMessageModal(props) {
             return;
         }
 
-        let ac = asChannel;
-        let oc = onCommand;
-        let cmd = chatCommand;
-        let int = timerToInterval();
-        let txt = text;
-        let txtfile = textFile;
-        reset();
-        props.onSubmit(props.chatID, ac, cmd, int, oc, txt, txtfile);
+        let message = {
+            id: props.chatID,
+            as_channel: asChannel,
+            command: chatCommand,
+            interval: timerToInterval(),
+            on_command: onCommand,
+            on_command_follower: onCommandFollower,
+            on_command_rant_amount: onCommandRantAmount,
+            on_command_subscriber: onCommandSubscriber,
+            text: text,
+            text_file: textFile,
+        };
+
+        props.onSubmit(message);
     };
 
     const deleteMessage = () => {
@@ -168,6 +183,23 @@ export function StreamChatMessageModal(props) {
         setOnCommand(e.target.checked);
     };
 
+    const checkCommandFollower = (e) => {
+        setOnCommandFollower(e.target.checked);
+    };
+
+    const checkCommandSubscriber = (e) => {
+        setOnCommandSubscriber(e.target.checked);
+    };
+
+    const updateRantAmount = (e) => {
+        let amount = parseInt(e.target.value);
+        if (isNaN(amount)) {
+            amount = 0;
+        }
+
+        setOnCommandRantAmount(amount);
+    };
+
     const checkReadFromFile = (e) => {
         setReadFromFile(e.target.checked);
         if (!e.target.checked) {
@@ -190,12 +222,11 @@ export function StreamChatMessageModal(props) {
             <Modal
                 onClose={close}
                 show={props.show}
-                style={{ minWidth: '300px', maxWidth: '400px' }}
+                style={{ minHeight: '500px', minWidth: '300px', maxWidth: '400px' }}
                 cancelButton={props.chatID === '' ? 'Cancel' : ''}
                 onCancel={deleteMessage}
                 deleteButton={props.chatID === '' ? '' : 'Delete'}
                 onDelete={deleteMessage}
-                style={{ minHeight: '450px', maxWidth: '400px' }}
                 submitButton={'Save'}
                 onSubmit={submit}
                 title={'Chat Message'}
@@ -278,15 +309,63 @@ export function StreamChatMessageModal(props) {
                             </label>
                         </div>
                         {onCommand ? (
-                            <div className='chat-command'>
-                                <input
-                                    className='chat-command-input'
-                                    onInput={updateChatCommand}
-                                    placeholder={'!command'}
-                                    size='8'
-                                    type='text'
-                                    value={chatCommand}
-                                />
+                            <div>
+                                <div className='chat-command'>
+                                    <input
+                                        className='chat-command-input'
+                                        onInput={updateChatCommand}
+                                        placeholder={'!command'}
+                                        size='8'
+                                        type='text'
+                                        value={chatCommand}
+                                    />
+                                </div>
+                                <div className='chat-command-options'>
+                                    <div className='chat-toggle'>
+                                        <span className='chat-toggle-label'>Followers only</span>
+                                        <label className='chat-toggle-switch'>
+                                            <input
+                                                onChange={checkCommandFollower}
+                                                type='checkbox'
+                                                checked={onCommandFollower}
+                                            />
+                                            <span className='chat-toggle-slider round'></span>
+                                        </label>
+                                    </div>
+                                    <div className='chat-toggle'>
+                                        <span className='chat-toggle-label'>Subscribers only</span>
+                                        <label className='chat-toggle-switch'>
+                                            <input
+                                                onChange={checkCommandSubscriber}
+                                                type='checkbox'
+                                                checked={onCommandSubscriber}
+                                            />
+                                            <span className='chat-toggle-slider round'></span>
+                                        </label>
+                                    </div>
+                                    <div className='chat-interval'>
+                                        <span className='chat-command-rant-amount-label'>
+                                            Minimum rant amount
+                                        </span>
+                                        <div>
+                                            <span className='chat-command-rant-amount-symbol'>
+                                                $
+                                            </span>
+                                            <input
+                                                className='chat-command-rant-amount'
+                                                onChange={updateRantAmount}
+                                                placeholder='0'
+                                                size='4'
+                                                type='text'
+                                                value={
+                                                    onCommandRantAmount === 0
+                                                        ? ''
+                                                        : onCommandRantAmount
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         ) : (
                             <div className='chat-command'>

@@ -147,15 +147,18 @@ function StreamChatItem(props) {
     };
 
     const openChat = () => {
-        props.onItemClick(
-            props.chat.id,
-            props.chat.as_channel,
-            props.chat.command,
-            intervalToTimer(props.chat.interval),
-            props.chat.on_command,
-            props.chat.text,
-            props.chat.text_file
-        );
+        props.onItemClick({
+            id: props.chat.id,
+            as_channel: props.chat.as_channel,
+            command: props.chat.command,
+            interval: intervalToTimer(props.chat.interval),
+            on_command: props.chat.on_command,
+            on_command_follower: props.chat.on_command_follower,
+            on_command_rant_amount: props.chat.on_command_rant_amount,
+            on_command_subscriber: props.chat.on_command_subscriber,
+            text: props.chat.text,
+            text_file: props.chat.text_file,
+        });
     };
 
     const startMessage = () => {
