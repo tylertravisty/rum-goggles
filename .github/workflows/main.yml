@@ -1,10 +1,7 @@
-name: Wails build
+name: Wails build Windows
 
 on:
-  push:
-    tags:
-    # Match any new tag
-      - '*'
+  workflow_dispatch:
 
 env:
   # Necessary for most environments as build failure can occur due to OOM issues
@@ -18,14 +15,8 @@ jobs:
       matrix:
         build:
           - name: 'rum-goggles'
-            platform:  'linux/amd64'
-            os: 'ubuntu-latest'
-          - name: 'rum-goggles'
             platform:  'windows/amd64'
             os: 'windows-latest'
-          - name: 'rum-goggles'
-            platform:  'darwin/universal'
-            os: 'macos-latest'
 
     runs-on: ${{ matrix.build.os }}
     steps:
