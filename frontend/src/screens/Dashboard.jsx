@@ -4,11 +4,15 @@ import {
     AddChatMessage,
     ChatBotMessages,
     DeleteChatMessage,
+    GetChatBot,
     NewChatBot,
     ResetChatBot,
+    StartAllChatBot,
     StartApi,
+    StopAllChatBot,
     StopApi,
     StopChatBotMessage,
+    UpdateChatBotUrl,
     UpdateChatMessage,
 } from '../../wailsjs/go/main/App';
 
@@ -35,6 +39,9 @@ function Dashboard() {
     const [openChatBot, setOpenChatBot] = useState(false);
     const [chatBotMessages, setChatBotMessages] = useState({});
     const [chatBotMessagesActive, setChatBotMessagesActive] = useState({});
+    const [chatBotSessionLoggedIn, setChatBotSessionLoggedIn] = useState(false);
+    const [chatBotSessionStreamUrl, setChatBotSessionStreamUrl] = useState('');
+    const [chatBotSessionUsername, setChatBotSessionUsername] = useState('');
     const [chatAsChannel, setChatAsChannel] = useState(false);
     const [chatCommand, setChatCommand] = useState('');
     const [chatOnCommand, setChatOnCommand] = useState(false);
@@ -78,6 +85,12 @@ function Dashboard() {
             setChatBotMessages(messages);
         });
 
+        NewChatBot(cid).then((response) => {
+            setChatBotSessionLoggedIn(response.logged_in);
+            setChatBotSessionStreamUrl(response.stream_url);
+            setChatBotSessionUsername(response.username);
+        });
+
         EventsOn('QueryResponse', (response) => {
             // console.log('query response received');
             setRefresh(!refresh);
@@ -115,7 +128,7 @@ function Dashboard() {
         StopApi()
             .then(() => setActive(false))
             .then(() => {
-                ResetChatBot();
+                ResetChatBot(cid, false);
             })
             .then(() => {
                 navigate(NavSignIn);
@@ -244,12 +257,71 @@ function Dashboard() {
             });
     };
 
+    // TODO: this never gets called - delete
     const saveChatBot = (username, password, url) => {
         NewChatBot(cid, username, password, url)
             .then(() => {
                 setOpenChatBot(false);
             })
             .catch((error) => console.log('Error creating new chat bot:', error));
+    };
+
+    const updateChatBot = (url) => {
+        setChatBotSessionStreamUrl(url);
+        setOpenChatBot(false);
+    };
+
+    const loginChatBot = () => {
+        GetChatBot(cid)
+            .then((response) => {
+                setChatBotSessionLoggedIn(response.logged_in);
+                setChatBotSessionStreamUrl(response.stream_url);
+                setChatBotSessionUsername(response.username);
+            })
+            .catch((error) => {
+                setError(error);
+                console.log('Error getting chat bot:', error);
+            })
+            .finally(() => {
+                setOpenChatBot(false);
+            });
+    };
+
+    const logoutChatBot = () => {
+        ResetChatBot(cid, true)
+            .then(() => {
+                NewChatBot(cid).then((response) => {
+                    console.log('NewChatBot response:', response);
+                    setChatBotSessionLoggedIn(response.logged_in);
+                    setChatBotSessionStreamUrl(response.stream_url);
+                    setChatBotSessionUsername(response.username);
+                });
+            })
+            .catch((error) => {
+                setError(error);
+                console.log('Error resetting chat bot:', error);
+            })
+            .finally(() => {
+                setOpenChatBot(false);
+            });
+    };
+
+    const chatBotStartAll = () => {
+        StartAllChatBot(cid).catch((error) => {
+            setError(error);
+            console.log('Error starting all chat bot messages:', error);
+        });
+    };
+
+    const chatBotStopAll = () => {
+        StopAllChatBot(cid)
+            .then(() => {
+                setChatBotMessagesActive({});
+            })
+            .catch((error) => {
+                setError(error);
+                console.log('Error stopping all chat bot messages:', error);
+            });
     };
 
     const activateMessage = (id, active) => {
@@ -290,9 +362,15 @@ function Dashboard() {
             {openChatBot && (
                 <ChatBotModal
                     cid={cid}
+                    loggedIn={chatBotSessionLoggedIn}
                     onClose={() => setOpenChatBot(false)}
+                    onLogin={loginChatBot}
+                    onLogout={logoutChatBot}
                     onSubmit={saveChatBot}
+                    onUpdate={updateChatBot}
                     show={openChatBot}
+                    streamUrl={chatBotSessionStreamUrl}
+                    username={chatBotSessionUsername}
                 />
             )}
             <div id='Dashboard'>
@@ -327,7 +405,9 @@ function Dashboard() {
                             chats={chatBotMessages}
                             onAdd={newChat}
                             onEdit={editChat}
+                            onPlayAll={chatBotStartAll}
                             onSettings={() => setOpenChatBot(true)}
+                            onStopAll={chatBotStopAll}
                             title={'Chat Bot'}
                             isMessageActive={isMessageActive}
                         />

@@ -45,3 +45,20 @@
     resize: none;
     width: 100%;
 }
+
+.chat-bot-description {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    justify-content: start;
+    padding-top: 10px;
+    width: 100%;
+}
+
+.chat-bot-description-label {
+    color: white;
+    font-family: sans-serif;
+    font-size: 20px;
+    padding-bottom: 5px;
+    padding-right: 5px;
+}

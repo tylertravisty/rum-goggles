@@ -9,6 +9,7 @@ import (
 	"html/template"
 	"log"
 	"math/big"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -45,8 +46,10 @@ type message struct {
 	textFromFile        []string
 }
 
-func NewChatBot(ctx context.Context, streamUrl string, cfg config.ChatBot, logError *log.Logger) (*ChatBot, error) {
-	client, err := rumblelivestreamlib.NewClient("", validUrl(streamUrl))
+func NewChatBot(ctx context.Context, cfg config.ChatBot, logError *log.Logger) (*ChatBot, error) {
+	// client, err := rumblelivestreamlib.NewClient("", validUrl(streamUrl))
+	client, err := rumblelivestreamlib.NewClient(cfg.Session.Client)
+
 	if err != nil {
 		return nil, fmt.Errorf("chatbot: error creating new client: %v", err)
 	}
@@ -131,9 +134,11 @@ func (cb *ChatBot) startCommand(ctx context.Context, m *message) {
 
 	var prev time.Time
 	for {
+		runtime.EventsEmit(cb.ctx, "ChatBotCommandActive-"+m.id, m.id)
 		// TODO: if error, emit error to user, stop loop?
 		select {
 		case <-ctx.Done():
+			runtime.EventsEmit(cb.ctx, "ChatBotMessageError-"+m.id, m.id)
 			return
 		case cv := <-ch:
 			if m.onCommandFollower && !cv.IsFollower {
@@ -173,7 +178,7 @@ func (cb *ChatBot) startCommand(ctx context.Context, m *message) {
 				return
 			} else {
 				prev = now
-				runtime.EventsEmit(cb.ctx, "ChatBotCommandActive-"+m.id, m.id)
+				// runtime.EventsEmit(cb.ctx, "ChatBotCommandActive-"+m.id, m.id)
 			}
 		}
 	}
@@ -196,6 +201,7 @@ func (cb *ChatBot) startMessage(ctx context.Context, m *message) {
 		select {
 		case <-ctx.Done():
 			timer.Stop()
+			runtime.EventsEmit(cb.ctx, "ChatBotMessageError-"+m.id, m.id)
 			return
 		case <-timer.C:
 		}
@@ -270,6 +276,17 @@ func (cb *ChatBot) chat(m *message) error {
 	return nil
 }
 
+func (cb *ChatBot) StartAllMessages() error {
+	for _, msg := range cb.Cfg.Messages {
+		err := cb.StartMessage(msg.ID)
+		if err != nil {
+			return fmt.Errorf("error starting message: %v", err)
+		}
+	}
+
+	return nil
+}
+
 func (cb *ChatBot) StopAllMessages() error {
 	cb.messagesMu.Lock()
 	defer cb.messagesMu.Unlock()
@@ -280,12 +297,12 @@ func (cb *ChatBot) StopAllMessages() error {
 
 		if m.command != "" && m.onCommand {
 			cb.commandsMu.Lock()
-			defer cb.commandsMu.Unlock()
 			ch, exists := cb.commands[m.command]
 			if exists {
 				close(ch)
 				delete(cb.commands, m.command)
 			}
+			cb.commandsMu.Unlock()
 		}
 	}
 
@@ -323,17 +340,30 @@ func (m *message) stop() {
 	m.cancelMu.Unlock()
 }
 
-func (cb *ChatBot) Login(username string, password string) error {
+func (cb *ChatBot) LoggedIn() (bool, error) {
 	if cb.client == nil {
-		return fmt.Errorf("chatbot: client is nil")
+		return false, fmt.Errorf("chatbot: client is nil")
 	}
 
-	err := cb.client.Login(username, password)
+	loggedIn, err := cb.client.LoggedIn()
 	if err != nil {
-		return fmt.Errorf("chatbot: error logging in: %v", err)
+		return false, fmt.Errorf("chatbot: error checking if chat bot is logged in: %v", err)
 	}
 
-	return nil
+	return loggedIn, nil
+}
+
+func (cb *ChatBot) Login(username string, password string) ([]*http.Cookie, error) {
+	if cb.client == nil {
+		return nil, fmt.Errorf("chatbot: client is nil")
+	}
+
+	cookies, err := cb.client.Login(username, password)
+	if err != nil {
+		return nil, fmt.Errorf("chatbot: error logging in: %v", err)
+	}
+
+	return cookies, nil
 }
 
 func (cb *ChatBot) Logout() error {

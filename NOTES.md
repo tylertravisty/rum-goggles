@@ -1,5 +1,7 @@
 # Doing
 
+Reset session information in config on logout
+
 Show error when choosing file "chooseFile"
 Show filename in chat bot list
 Add styling to choose file button

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FilepathBase, StartChatBotMessage, StopChatBotMessage } from '../../wailsjs/go/main/App';
 import { EventsOn } from '../../wailsjs/runtime/runtime';
-import { GearFill, Pause, Play, PlusCircle } from '../assets/icons';
+import { GearFill, Pause, Play, PlayGreen, PlusCircle, Stop } from '../assets/icons';
 import './StreamChatBot.css';
 import { SmallModal } from './Modal';
 
@@ -19,6 +19,20 @@ function StreamChatBot(props) {
         <div className='stream-chatbot'>
             <div className='stream-chatbot-header'>
                 <span className='stream-chatbot-title'>{props.title}</span>
+                <div className='stream-chatbot-controls'>
+                    <button
+                        className='stream-chatbot-button stream-chatbot-button-title'
+                        onClick={props.onPlayAll}
+                    >
+                        <img className='stream-chatbot-icon' src={PlayGreen} />
+                    </button>
+                    <button
+                        className='stream-chatbot-button stream-chatbot-button-title'
+                        onClick={props.onStopAll}
+                    >
+                        <img className='stream-chatbot-icon' src={Stop} />
+                    </button>
+                </div>
                 <div className='stream-chatbot-controls'>
                     <button
                         className='stream-chatbot-button stream-chatbot-button-title'

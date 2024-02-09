@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/tylertravisty/go-utils v0.0.0-20230524204414-6893ae548909
-	github.com/tylertravisty/rumble-livestream-lib-go v0.2.2
+	github.com/tylertravisty/rumble-livestream-lib-go v0.3.4
 	github.com/wailsapp/wails/v2 v2.7.1
 )
 

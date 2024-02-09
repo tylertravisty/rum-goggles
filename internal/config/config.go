@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/tylertravisty/go-utils/random"
+	rumblelivestreamlib "github.com/tylertravisty/rumble-livestream-lib-go"
 )
 
 const (
@@ -85,8 +86,14 @@ type ChatMessage struct {
 	TextFile            string        `json:"text_file"`
 }
 
+type ChatBotSession struct {
+	Client   rumblelivestreamlib.NewClientOptions `json:"client"`
+	Username string                               `json:"username"`
+}
+
 type ChatBot struct {
 	Messages map[string]ChatMessage `json:"messages"`
+	Session  ChatBotSession         `json:"session"`
 	// Commands []ChatCommand
 }
 
@@ -106,7 +113,7 @@ func (a *App) NewChannel(url string, name string) (string, error) {
 		}
 
 		if _, exists := a.Channels[id]; !exists {
-			a.Channels[id] = Channel{id, url, name, DefaultInterval, ChatBot{map[string]ChatMessage{}}}
+			a.Channels[id] = Channel{id, url, name, DefaultInterval, ChatBot{Messages: map[string]ChatMessage{}}}
 			return id, nil
 		}
 	}

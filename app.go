@@ -215,9 +215,76 @@ func (a *App) UpdateChatMessage(cid string, cm config.ChatMessage) (map[string]c
 	return a.cfg.Channels[cid].ChatBot.Messages, nil
 }
 
-func (a *App) NewChatBot(cid string, username string, password string, streamUrl string) error {
+type NewChatBotResponse struct {
+	LoggedIn  bool   `json:"logged_in"`
+	StreamUrl string `json:"stream_url"`
+	Username  string `json:"username"`
+}
+
+func (a *App) GetChatBot(cid string) (NewChatBotResponse, error) {
+	if a.cb == nil {
+		return NewChatBotResponse{}, fmt.Errorf("Chat bot not initalized.")
+	}
+
+	loggedIn, err := a.cb.LoggedIn()
+	if err != nil {
+		a.logError.Println("error checking if chat bot is logged in:", err)
+		return NewChatBotResponse{}, fmt.Errorf("Error checking if chat bot is logged in. Try again.")
+	}
+
+	return NewChatBotResponse{loggedIn, a.cb.Cfg.Session.Client.StreamUrl, a.cb.Cfg.Session.Username}, nil
+}
+
+func (a *App) NewChatBot(cid string) (NewChatBotResponse, error) {
 	a.cbMu.Lock()
 	defer a.cbMu.Unlock()
+
+	if a.cb != nil {
+		err := a.resetChatBot()
+		if err != nil {
+			a.logError.Println("error resetting chat bot:", err)
+			return NewChatBotResponse{}, fmt.Errorf("Error creating chat bot. Try Again.")
+		}
+	}
+	channel, exists := a.cfg.Channels[cid]
+	if !exists {
+		a.logError.Println("channel does not exist:", cid)
+		return NewChatBotResponse{}, fmt.Errorf("Channel does not exist.")
+	}
+
+	if channel.ChatBot.Session.Client.StreamUrl == "" {
+		return NewChatBotResponse{}, nil
+	}
+
+	var err error
+	a.cb, err = chatbot.NewChatBot(a.ctx, channel.ChatBot, a.logError)
+	if err != nil {
+		a.logError.Println("error creating new chat bot:", err)
+		return NewChatBotResponse{}, fmt.Errorf("Error creating new chat bot. Try again.")
+	}
+
+	loggedIn, err := a.cb.LoggedIn()
+	if err != nil {
+		a.logError.Println("error checking if chat bot is logged in:", err)
+		return NewChatBotResponse{}, fmt.Errorf("Error checking if chat bot is logged in. Try again.")
+	}
+
+	if loggedIn {
+		err = a.cb.StartChatStream()
+		if err != nil {
+			a.logError.Println("error starting chat stream:", err)
+			return NewChatBotResponse{}, fmt.Errorf("Error connecting to chat. Try again.")
+		}
+	}
+
+	return NewChatBotResponse{loggedIn, channel.ChatBot.Session.Client.StreamUrl, channel.ChatBot.Session.Username}, nil
+}
+
+func (a *App) LoginChatBot(cid string, username string, password string, streamUrl string) error {
+	a.cbMu.Lock()
+	defer a.cbMu.Unlock()
+	a.cfgMu.Lock()
+	defer a.cfgMu.Unlock()
 
 	if a.cb != nil {
 		err := a.resetChatBot()
@@ -231,19 +298,36 @@ func (a *App) NewChatBot(cid string, username string, password string, streamUrl
 		a.logError.Println("channel does not exist:", cid)
 		return fmt.Errorf("Channel does not exist.")
 	}
+	channel.ChatBot.Session.Client.StreamUrl = streamUrl
 
 	var err error
-	a.cb, err = chatbot.NewChatBot(a.ctx, streamUrl, channel.ChatBot, a.logError)
+	a.cb, err = chatbot.NewChatBot(a.ctx, channel.ChatBot, a.logError)
 	if err != nil {
 		a.logError.Println("error creating new chat bot:", err)
 		return fmt.Errorf("Error creating new chat bot. Try again.")
 	}
 
-	err = a.cb.Login(username, password)
+	cookies, err := a.cb.Login(username, password)
 	if err != nil {
 		a.logError.Println("error logging into chat bot:", err)
 		return fmt.Errorf("Error logging in. Try again.")
 	}
+
+	channel.ChatBot.Session = config.ChatBotSession{
+		Client: rumblelivestreamlib.NewClientOptions{
+			Cookies:   cookies,
+			StreamUrl: streamUrl,
+		},
+		Username: username,
+	}
+	a.cfg.Channels[cid] = channel
+	err = a.cfg.Save()
+	if err != nil {
+		a.logError.Println("error saving config:", err)
+		return fmt.Errorf("Error saving session information. Try again.")
+	}
+
+	a.cb.Cfg.Session = channel.ChatBot.Session
 
 	err = a.cb.StartChatStream()
 	if err != nil {
@@ -251,15 +335,114 @@ func (a *App) NewChatBot(cid string, username string, password string, streamUrl
 		return fmt.Errorf("Error connecting to chat. Try again.")
 	}
 
-	// a.cb = cb
 	return nil
 }
 
-func (a *App) ResetChatBot() error {
+func (a *App) StopAllChatBot(cid string) error {
+	err := a.cb.StopAllMessages()
+	if err != nil {
+		a.logError.Println("error stopping all chat bot messages:", err)
+		return fmt.Errorf("Error stopping messages.")
+	}
+
+	return nil
+}
+
+func (a *App) StartAllChatBot(cid string) error {
+	err := a.cb.StartAllMessages()
+	if err != nil {
+		a.logError.Println("error starting all chat bot messages:", err)
+		return fmt.Errorf("Error starting messages.")
+	}
+
+	return nil
+}
+
+func (a *App) UpdateChatBotUrl(cid string, streamUrl string) error {
 	a.cbMu.Lock()
 	defer a.cbMu.Unlock()
+	a.cfgMu.Lock()
+	defer a.cfgMu.Unlock()
+
+	if a.cb == nil {
+		return fmt.Errorf("Chat bot not initalized.")
+	}
 
 	err := a.resetChatBot()
+	if err != nil {
+		a.logError.Println("error resetting chat bot:", err)
+		return fmt.Errorf("Error creating chat bot. Try Again.")
+	}
+
+	channel, exists := a.cfg.Channels[cid]
+	if !exists {
+		a.logError.Println("channel does not exist:", cid)
+		return fmt.Errorf("Channel does not exist.")
+	}
+	channel.ChatBot.Session.Client.StreamUrl = streamUrl
+
+	a.cb, err = chatbot.NewChatBot(a.ctx, channel.ChatBot, a.logError)
+	if err != nil {
+		a.logError.Println("error creating new chat bot:", err)
+		return fmt.Errorf("Error creating new chat bot. Try again.")
+	}
+
+	a.cfg.Channels[cid] = channel
+	err = a.cfg.Save()
+	if err != nil {
+		a.logError.Println("error saving config:", err)
+		return fmt.Errorf("Error saving session information. Try again.")
+	}
+
+	a.cb.Cfg.Session.Client.StreamUrl = streamUrl
+
+	err = a.cb.StartChatStream()
+	if err != nil {
+		a.logError.Println("error starting chat stream:", err)
+		return fmt.Errorf("Error connecting to chat. Try again.")
+	}
+
+	return nil
+}
+
+func (a *App) ResetChatBot(cid string, logout bool) error {
+	a.cbMu.Lock()
+	defer a.cbMu.Unlock()
+	a.cfgMu.Lock()
+	defer a.cfgMu.Unlock()
+
+	if a.cb == nil {
+		return nil
+	}
+
+	err := a.cb.StopAllMessages()
+	if err != nil {
+		return fmt.Errorf("error stopping all chat bot messages: %v", err)
+	}
+
+	if logout {
+		err := a.cb.Logout()
+		if err != nil {
+			return fmt.Errorf("error logging out of chat bot: %v", err)
+		}
+
+		//TODO: reset session in config
+		channel, exists := a.cfg.Channels[cid]
+		if !exists {
+			a.logError.Println("channel does not exist:", cid)
+			return fmt.Errorf("Channel does not exist.")
+		}
+
+		channel.ChatBot.Session = config.ChatBotSession{}
+		a.cfg.Channels[cid] = channel
+		err = a.cfg.Save()
+		if err != nil {
+			a.logError.Println("error saving config:", err)
+			return fmt.Errorf("Error saving session information. Try again.")
+		}
+	}
+
+	err = a.resetChatBot()
 	if err != nil {
 		a.logError.Println("error resetting chat bot:", err)
 		return fmt.Errorf("Error resetting chat bot. Try Again.")
@@ -282,11 +465,6 @@ func (a *App) resetChatBot() error {
 	err = a.cb.StopChatStream()
 	if err != nil {
 		return fmt.Errorf("error stopping chat stream: %v", err)
-	}
-
-	err = a.cb.Logout()
-	if err != nil {
-		return fmt.Errorf("error logging out of chat bot: %v", err)
 	}
 
 	a.cb = nil
