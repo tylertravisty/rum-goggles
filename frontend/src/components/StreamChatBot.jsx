@@ -65,7 +65,8 @@ function StreamChatBot(props) {
 export default StreamChatBot;
 
 function StreamChatItem(props) {
-    const [active, setActive] = useState(props.isMessageActive(props.chat.id));
+    // const [active, setActive] = useState(props.isMessageActive(props.chat.id));
+    const [active, setActive] = useState(false);
     const [error, setError] = useState('');
     const [filename, setFilename] = useState(props.chat.text_file);
 
@@ -75,13 +76,13 @@ function StreamChatItem(props) {
                 setFilename(name);
             });
         }
-        setActive(props.isMessageActive(props.chat.id));
+        // setActive(props.isMessageActive(props.chat.id));
     }, [props]);
 
     const changeActive = (bool) => {
         // console.log('ChangeActive:', bool);
         // props.chat.active = bool;
-        props.activateMessage(props.chat.id, bool);
+        // props.activateMessage(props.chat.id, bool);
         setActive(bool);
     };
 

@@ -339,6 +339,10 @@ func (a *App) LoginChatBot(cid string, username string, password string, streamU
 }
 
 func (a *App) StopAllChatBot(cid string) error {
+	if a.cb == nil {
+		return fmt.Errorf("Chat bot not initialized.")
+	}
+
 	err := a.cb.StopAllMessages()
 	if err != nil {
 		a.logError.Println("error stopping all chat bot messages:", err)
@@ -349,6 +353,10 @@ func (a *App) StopAllChatBot(cid string) error {
 }
 
 func (a *App) StartAllChatBot(cid string) error {
+	if a.cb == nil {
+		return fmt.Errorf("Chat bot not initialized.")
+	}
+
 	err := a.cb.StartAllMessages()
 	if err != nil {
 		a.logError.Println("error starting all chat bot messages:", err)
@@ -365,7 +373,7 @@ func (a *App) UpdateChatBotUrl(cid string, streamUrl string) error {
 	defer a.cfgMu.Unlock()
 
 	if a.cb == nil {
-		return fmt.Errorf("Chat bot not initalized.")
+		return fmt.Errorf("Chat bot not initialized.")
 	}
 
 	err := a.resetChatBot()
