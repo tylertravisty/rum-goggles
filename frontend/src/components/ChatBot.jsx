@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
-
 import { Modal, SmallModal } from './Modal';
-
 import { LoginChatBot, UpdateChatBotUrl } from '../../wailsjs/go/main/App';
 
 import './ChatBot.css';

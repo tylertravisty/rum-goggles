@@ -21,14 +21,16 @@ import (
 )
 
 type ChatBot struct {
-	ctx        context.Context
-	client     *rumblelivestreamlib.Client
-	commands   map[string]chan rumblelivestreamlib.ChatView
-	commandsMu sync.Mutex
-	Cfg        config.ChatBot
-	logError   *log.Logger
-	messages   map[string]*message
-	messagesMu sync.Mutex
+	ctx                context.Context
+	cancelChatStream   context.CancelFunc
+	cancelChatStreamMu sync.Mutex
+	client             *rumblelivestreamlib.Client
+	commands           map[string]chan rumblelivestreamlib.ChatView
+	commandsMu         sync.Mutex
+	Cfg                config.ChatBot
+	logError           *log.Logger
+	messages           map[string]*message
+	messagesMu         sync.Mutex
 }
 
 type message struct {
@@ -389,12 +391,38 @@ func (cb *ChatBot) StartChatStream() error {
 		return fmt.Errorf("chatbot: error getting chat info: %v", err)
 	}
 
-	err = cb.client.StartChatStream(cb.handleChat, cb.handleError)
-	if err != nil {
-		return fmt.Errorf("chatbot: error starting chat stream: %v", err)
-	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cb.cancelChatStreamMu.Lock()
+	cb.cancelChatStream = cancel
+	cb.cancelChatStreamMu.Unlock()
+
+	go cb.startChatStream(ctx)
+
+	// err = cb.client.StartChatStream(cb.handleChat, cb.handleError)
+	// if err != nil {
+	// 	return fmt.Errorf("chatbot: error starting chat stream: %v", err)
+	// }
 
 	return nil
+}
+
+func (cb *ChatBot) startChatStream(ctx context.Context) {
+	for {
+		err := cb.client.StartChatStream(cb.handleChat, cb.handleError)
+		if err != nil {
+			cb.logError.Println("error starting chat stream:", err)
+			runtime.EventsEmit(cb.ctx, "ChatBotChatStreamError", "Error starting chat stream.")
+			return
+		}
+		select {
+		case <-time.After(90 * time.Minute):
+			cb.client.StopChatStream()
+			break
+		case <-ctx.Done():
+			cb.client.StopChatStream()
+			return
+		}
+	}
 }
 
 func (cb *ChatBot) StopChatStream() error {
@@ -403,7 +431,28 @@ func (cb *ChatBot) StopChatStream() error {
 	}
 
 	// TODO: should a panic be caught here?
+	cb.cancelChatStreamMu.Lock()
+	if cb.cancelChatStream != nil {
+		cb.cancelChatStream()
+	} else {
+		cb.client.StopChatStream()
+	}
+	cb.cancelChatStreamMu.Unlock()
+
+	return nil
+}
+
+func (cb *ChatBot) RestartChatStream() error {
+	if cb.client == nil {
+		return fmt.Errorf("chatbot: client is nil")
+	}
+
 	cb.client.StopChatStream()
+
+	err := cb.client.StartChatStream(cb.handleChat, cb.handleError)
+	if err != nil {
+		return fmt.Errorf("chatbot: error starting chat stream: %v", err)
+	}
 
 	return nil
 }

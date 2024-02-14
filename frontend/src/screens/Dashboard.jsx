@@ -122,6 +122,10 @@ function Dashboard() {
             // console.log('Query response error:', error);
             setActive(false);
         });
+
+        EventsOn('ChatBotChatStreamError', (error) => {
+            setError(error);
+        });
     }, []);
 
     const home = () => {
