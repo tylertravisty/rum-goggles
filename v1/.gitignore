@@ -1,0 +1,6 @@
+build/bin
+build/darwin
+build/windows
+node_modules
+frontend/dist
+frontend/wailsjs
