@@ -44,21 +44,42 @@ github.com/mattn/go-colorable
 # github.com/mattn/go-isatty v0.0.19
 ## explicit; go 1.15
 github.com/mattn/go-isatty
+# github.com/mattn/go-sqlite3 v1.14.22
+## explicit; go 1.19
+github.com/mattn/go-sqlite3
 # github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 ## explicit; go 1.14
 github.com/pkg/browser
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
+# github.com/r3labs/sse/v2 v2.10.0
+## explicit; go 1.13
+github.com/r3labs/sse/v2
 # github.com/rivo/uniseg v0.4.4
 ## explicit; go 1.18
 github.com/rivo/uniseg
+# github.com/robertkrimen/otto v0.2.1
+## explicit; go 1.18
+github.com/robertkrimen/otto
+github.com/robertkrimen/otto/ast
+github.com/robertkrimen/otto/dbg
+github.com/robertkrimen/otto/file
+github.com/robertkrimen/otto/parser
+github.com/robertkrimen/otto/registry
+github.com/robertkrimen/otto/token
 # github.com/samber/lo v1.38.1
 ## explicit; go 1.18
 github.com/samber/lo
 # github.com/tkrajina/go-reflector v0.5.6
 ## explicit; go 1.17
 github.com/tkrajina/go-reflector/reflector
+# github.com/tylertravisty/go-utils v0.0.0-20230524204414-6893ae548909
+## explicit; go 1.16
+github.com/tylertravisty/go-utils/random
+# github.com/tylertravisty/rumble-livestream-lib-go v0.3.4
+## explicit; go 1.19
+github.com/tylertravisty/rumble-livestream-lib-go
 # github.com/valyala/bytebufferpool v1.0.0
 ## explicit
 github.com/valyala/bytebufferpool
@@ -128,6 +149,7 @@ golang.org/x/crypto/acme/autocert
 golang.org/x/exp/constraints
 # golang.org/x/net v0.20.0
 ## explicit; go 1.18
+golang.org/x/net/context
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/http/httpguts
@@ -143,7 +165,27 @@ golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
 # golang.org/x/text v0.14.0
 ## explicit; go 1.18
+golang.org/x/text/feature/plural
+golang.org/x/text/internal
+golang.org/x/text/internal/catmsg
+golang.org/x/text/internal/format
+golang.org/x/text/internal/language
+golang.org/x/text/internal/language/compact
+golang.org/x/text/internal/number
+golang.org/x/text/internal/stringset
+golang.org/x/text/internal/tag
+golang.org/x/text/language
+golang.org/x/text/message
+golang.org/x/text/message/catalog
+golang.org/x/text/number
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
+# gopkg.in/cenkalti/backoff.v1 v1.1.0
+## explicit
+gopkg.in/cenkalti/backoff.v1
+# gopkg.in/sourcemap.v1 v1.0.5
+## explicit
+gopkg.in/sourcemap.v1
+gopkg.in/sourcemap.v1/base64vlq

@@ -4,7 +4,11 @@ go 1.21
 
 toolchain go1.22.0
 
-require github.com/wailsapp/wails/v2 v2.8.0
+require (
+	github.com/mattn/go-sqlite3 v1.14.22
+	github.com/tylertravisty/rumble-livestream-lib-go v0.3.4
+	github.com/wailsapp/wails/v2 v2.8.0
+)
 
 require (
 	github.com/bep/debounce v1.2.1 // indirect
@@ -22,9 +26,12 @@ require (
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/r3labs/sse/v2 v2.10.0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
+	github.com/robertkrimen/otto v0.2.1 // indirect
 	github.com/samber/lo v1.38.1 // indirect
 	github.com/tkrajina/go-reflector v0.5.6 // indirect
+	github.com/tylertravisty/go-utils v0.0.0-20230524204414-6893ae548909 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/wailsapp/go-webview2 v1.0.10 // indirect
@@ -34,6 +41,8 @@ require (
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
+	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
+	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
 
 // replace github.com/wailsapp/wails/v2 v2.8.0 => /home/tyler/dev/go/pkg/mod
