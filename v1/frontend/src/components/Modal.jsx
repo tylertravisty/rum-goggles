@@ -6,7 +6,7 @@ export function Modal(props) {
         <div
             className='modal-background'
             onClick={props.onClose}
-            style={{ zIndex: props.show ? 10 : -10 }}
+            style={{ zIndex: props.show ? 8 : -8 }}
         >
             <div
                 className='modal-container'
@@ -33,7 +33,12 @@ export function Modal(props) {
                     )}
                     {props.submitButton && (
                         <button className='modal-button' onClick={props.onSubmit}>
-                            {props.submitButton}
+                            {/* {props.submitButton} */}
+                            {props.submitLoading ? (
+                                <div className='loader'></div>
+                            ) : (
+                                props.submitButton
+                            )}
                         </button>
                     )}
                 </div>

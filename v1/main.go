@@ -2,7 +2,10 @@ package main
 
 import (
 	"embed"
+	"net/http"
+	"strings"
 
+	"github.com/tylertravisty/rum-goggles/v1/internal/config"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -21,7 +24,8 @@ func main() {
 		Width:  1024,
 		Height: 768,
 		AssetServer: &assetserver.Options{
-			Assets: assets,
+			Assets:  assets,
+			Handler: http.HandlerFunc(GetImage),
 		},
 		BackgroundColour: &options.RGBA{R: 255, G: 255, B: 255, A: 255},
 		OnShutdown:       app.shutdown,
@@ -34,4 +38,13 @@ func main() {
 	if err != nil {
 		println("Error:", err.Error())
 	}
+}
+
+func GetImage(w http.ResponseWriter, r *http.Request) {
+	path := strings.Replace(r.RequestURI, "wails://wails", "", 1)
+	prefix, err := config.ImageDir()
+	if err != nil {
+		return
+	}
+	http.ServeFile(w, r, prefix+path)
 }

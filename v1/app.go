@@ -67,6 +67,8 @@ func (a *App) startup(ctx context.Context) {
 	services, err := models.NewServices(
 		models.WithDatabase(db),
 		models.WithAccountService(),
+		models.WithChannelService(),
+		models.WithAccountChannelService(),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -98,6 +100,84 @@ func (a *App) shutdown(ctx context.Context) {
 		}
 	}
 	a.logFileMu.Unlock()
+}
+
+func (a *App) AddChannel(apiKey string) error {
+	client := rumblelivestreamlib.Client{StreamKey: apiKey}
+	resp, err := client.Request()
+	if err != nil {
+		a.logError.Println("error executing api request:", err)
+		return fmt.Errorf("Error querying API. Verify key and try again.")
+	}
+
+	userKey := apiKey
+	channelKey := ""
+	if resp.Type == "channel" {
+		userKey = ""
+		channelKey = apiKey
+	}
+
+	err = a.addAccountNotExist(resp.UserID, resp.Username, userKey)
+	if err != nil {
+		a.logError.Println("error adding account if not exist:", err)
+		return fmt.Errorf("Error adding channel. Try again.")
+	}
+
+	if resp.Type == "channel" {
+		err = a.addChannelNotExist(resp.Username, fmt.Sprint(resp.ChannelID), resp.ChannelName, channelKey)
+		if err != nil {
+			a.logError.Println("error adding channel if not exist:", err)
+			return fmt.Errorf("Error adding channel. Try again.")
+		}
+	}
+
+	return nil
+}
+
+func (a *App) addAccountNotExist(uid string, username string, apiKey string) error {
+	acct, err := a.services.AccountS.ByUsername(username)
+	if err != nil {
+		return fmt.Errorf("error querying account by username: %v", err)
+	}
+	if acct == nil {
+		err = a.services.AccountS.Create(&models.Account{
+			UID:      &uid,
+			Username: &username,
+			ApiKey:   &apiKey,
+		})
+		if err != nil {
+			return fmt.Errorf("error creating account: %v", err)
+		}
+	}
+	return nil
+}
+
+func (a *App) addChannelNotExist(username string, cid string, name string, apiKey string) error {
+	channel, err := a.services.ChannelS.ByName(name)
+	if err != nil {
+		return fmt.Errorf("error querying channel by name: %v", err)
+	}
+	if channel == nil {
+		acct, err := a.services.AccountS.ByUsername(username)
+		if err != nil {
+			return fmt.Errorf("error querying account by username: %v", err)
+		}
+		if acct == nil {
+			return fmt.Errorf("account does not exist with username: %s", username)
+		}
+
+		err = a.services.ChannelS.Create(&models.Channel{
+			AccountID: acct.ID,
+			CID:       &cid,
+			Name:      &name,
+			ApiKey:    &apiKey,
+		})
+		if err != nil {
+			return fmt.Errorf("error creating channel: %v", err)
+		}
+	}
+
+	return nil
 }
 
 func (a *App) Login(username string, password string) error {
@@ -133,7 +213,7 @@ func (a *App) Login(username string, password string) error {
 		return fmt.Errorf("Error logging in. Try again.")
 	}
 	if act == nil {
-		act = &models.Account{nil, &username, &cookiesS}
+		act = &models.Account{nil, nil, &username, &cookiesS, nil, nil}
 		err = a.services.AccountS.Create(act)
 		if err != nil {
 			a.logError.Println("error creating account:", err)
@@ -143,10 +223,54 @@ func (a *App) Login(username string, password string) error {
 		act.Cookies = &cookiesS
 		err = a.services.AccountS.Update(act)
 		if err != nil {
-			a.logError.Println("error updating account", err)
+			a.logError.Println("error updating account:", err)
 			return fmt.Errorf("Error logging in. Try again.")
 		}
 	}
 
 	return nil
+}
+
+func (a *App) SignedIn() (bool, error) {
+	accounts, err := a.services.AccountS.All()
+	if err != nil {
+		a.logError.Println("error getting all accounts:", err)
+		return false, fmt.Errorf("Error retrieving accounts. Try restarting.")
+	}
+
+	return len(accounts) > 0, nil
+}
+
+type Account struct {
+	Account  models.Account   `json:"account"`
+	Channels []models.Channel `json:"channels"`
+}
+
+func (a *App) AccountList() (map[string]*Account, error) {
+	list := map[string]*Account{}
+
+	accountChannels, err := a.services.AccountChannelS.All()
+	if err != nil {
+		a.logError.Println("error getting all account channels:", err)
+		return nil, fmt.Errorf("Error retrieving accounts and channels. Try restarting.")
+	}
+
+	for _, ac := range accountChannels {
+		if ac.Account.Username == nil {
+			a.logError.Println("account-channel contains nil account username")
+			return nil, fmt.Errorf("Error retrieving accounts and channels. Try restarting.")
+		}
+
+		act, exists := list[*ac.Account.Username]
+		if !exists || act == nil {
+			act = &Account{ac.Account, []models.Channel{}}
+			list[*ac.Account.Username] = act
+		}
+
+		if ac.Channel.AccountID != nil {
+			act.Channels = append(act.Channels, ac.Channel)
+		}
+	}
+
+	return list, nil
 }

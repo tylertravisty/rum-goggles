@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { SmallModal } from '../components/Modal';
-import { Login } from '../../wailsjs/go/main/App';
+import { Login, SignedIn } from '../../wailsjs/go/main/App';
 import { Eye, EyeSlash, Logo } from '../assets';
+import { Navigate, useNavigate } from 'react-router-dom';
 import './SignIn.css';
+import { NavDashboard } from '../Navigation';
 
 function SignIn() {
     const [error, setError] = useState('');
+    const navigate = useNavigate();
     const [password, setPassword] = useState('');
     const updatePassword = (event) => setPassword(event.target.value);
     const [showPassword, setShowPassword] = useState(false);
@@ -15,11 +18,24 @@ function SignIn() {
     const updateUsername = (event) => setUsername(event.target.value);
 
     useEffect(() => {
+        SignedIn()
+            .then((signedIn) => {
+                if (signedIn) {
+                    navigate(NavDashboard);
+                }
+            })
+            .catch((error) => {
+                setError(error);
+            });
+    }, []);
+
+    useEffect(() => {
         if (signingIn) {
             Login(username, password)
                 .then(() => {
                     setUsername('');
                     setPassword('');
+                    navigate(NavDashboard);
                 })
                 .catch((error) => {
                     setError(error);

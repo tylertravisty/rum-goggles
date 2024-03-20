@@ -11,6 +11,8 @@ const (
 	configDirNix = ".rum-goggles"
 	configDirWin = "RumGoggles"
 
+	imageDir = "images"
+
 	logFile = "rumgoggles.log"
 	sqlFile = "rumgoggles.db"
 )
@@ -30,6 +32,22 @@ func Database() (string, error) {
 	defer f.Close()
 
 	return path, nil
+}
+
+func ImageDir() (string, error) {
+	cfgDir, err := configDir()
+	if err != nil {
+		return "", pkgErr("error getting config directory", err)
+	}
+
+	dir := filepath.Join(cfgDir, imageDir)
+
+	err = os.MkdirAll(dir, 0750)
+	if err != nil {
+		return "", fmt.Errorf("error making directory: %v", err)
+	}
+
+	return dir, nil
 }
 
 // TODO: implement log rotation

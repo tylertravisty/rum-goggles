@@ -1,0 +1,357 @@
+
+.channel-sidebar {
+    align-items: center;
+    background-color: #061726;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    padding: 0px 10px;
+}
+
+.channel-sidebar-account-list {
+    border-top: 2px solid #273848;
+    padding-bottom: 10px;
+}
+
+.channel-sidebar-body {
+    overflow-y: auto;
+}
+
+.channel-sidebar-button {
+    align-items: center;
+    background-color: #061726;
+    border: none;
+    display: flex;
+    justify-content: center;
+    padding: 0px;
+}
+
+.channel-sidebar-button:hover {
+    cursor: pointer;
+}
+
+.channel-sidebar-button-icon {
+    height: 60px;
+    width: 60px;
+}
+
+.channel-sidebar-footer {
+    padding-bottom: 10px;
+}
+
+.channel-sidebar-icon {
+    height: 60px;
+    margin-top: 10px;
+    position: relative;
+    width: 60px;
+}
+
+.channel-sidebar-icon-account {
+    bottom: 0px;
+    height: 24px;
+    left: 36px;
+    position: absolute;
+    width: 24px;
+}
+
+.channel-sidebar-icon-hover {
+    background-color: #061726;
+    border-radius: 5px;
+    color: black; 
+    padding: 10px;
+    position: fixed;
+    /* transform: translate(75px, -50px); */
+    z-index: 10;
+}
+.channel-sidebar-icon-hover:before {
+   content:"";
+   position: absolute;
+   width: 0;
+   height: 0;
+   border-top: 3px solid transparent;
+   border-right: 3px solid #061726;
+   border-bottom: 3px solid transparent;
+   margin: 7px 0 0 -13px;
+}
+
+.channel-sidebar-icon-hover-text {
+    color: white;
+    font-family: sans-serif;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.channel-sidebar-icon-image {
+    /* border: 3px solid #85c742; */
+    /* border: 3px solid #ec0; */
+    border: 3px solid #f23160;
+    border-radius: 50%;
+    height: 54px;
+    transition: border-radius 0.25s;
+    width: 54px;
+}
+
+.channel-sidebar-icon-image:hover {
+    border-radius: 30%;
+    transition: border-radius 0.25s;
+}
+
+.channel-sidebar-icon-initial {
+    align-items: center;
+    background-color: #3377cc;
+    /* border: 3px solid #85c742; */
+    /* border: 3px solid #ec0; */
+    border: 3px solid #f23160;
+    border-radius: 50%;
+    color: #eee;
+    display: flex;
+    font-family: sans-serif;
+    font-size: 34px;
+    font-weight: bold;
+    height: 54px;
+    justify-content: center;
+    transition: border-radius 0.25s;
+    width: 54px;
+}
+
+.channel-sidebar-icon-initial:hover {
+    border-radius: 30%;
+    transition: border-radius 0.25s;
+}
+
+.modal-add-account-channel {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.modal-add-account-channel-header {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-add-account-channel-subtitle {
+    color: white;
+    font-family: sans-serif;
+    font-size: 14px;
+    margin-top: 10px;
+    text-align: center;
+}
+
+.modal-add-account-channel-title {
+    color: white;
+    font-family: sans-serif;
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.modal-add-account-channel-body {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.modal-add-account-channel-button {
+    align-items: center;
+    background-color: #1f2e3c;
+    border: 1px solid #d6e0ea;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: 5px 0px;
+    padding: 20px;
+    width: 100%;
+}
+
+.modal-add-account-channel-button:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+}
+
+.modal-add-account-channel-button-left {
+    color: white;
+    font-family: sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.modal-add-account-channel-button-right-icon {
+    height: 20px;
+    width: 20px;
+}
+
+.modal-add-account-channel-input {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+.modal-add-account-channel-input-password {
+    background-color: #061726;
+    border: none;
+    border-radius: 5px 0px 0px 5px;
+    box-sizing: border-box;
+    color: white;
+    font-family: monospace;
+    font-size: 16px;
+    outline: none;
+    padding: 10px;
+    resize: none;
+    width: 90%;
+}
+
+.modal-add-account-channel-input-text {
+    background-color: #061726;
+    border: none;
+    border-radius: 5px;
+    box-sizing: border-box;
+    color: white;
+    font-family: monospace;
+    font-size: 16px;
+    outline: none;
+    padding: 10px;
+    resize: none;
+    width: 100%;
+}
+
+.modal-add-account-channel-input-show {
+    align-items: center;
+    background-color: #061726;
+    border: none;
+    border-radius: 0px 5px 5px 0px;
+    display: flex;
+    justify-content: center;
+    width: 10%;
+}
+
+.modal-add-account-channel-input-show:hover {
+    cursor: pointer;
+}
+
+.modal-add-account-channel-input-show-icon {
+    height: 16px;
+    width: 16px;
+}
+
+.modal-add-account-channel-label {
+    color: white;
+    font-family: sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+.modal-add-account-channel-label-warning {
+    color: #f23160;
+    font-family: sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+.modal-add-channel-description {
+    color: white;
+    font-family: sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 20px;
+    text-align: left;
+    width: 100%;
+}
+
+.modal-add-channel-description-subtext {
+    color: white;
+    font-family: sans-serif;
+    font-size: 16px;
+    margin-top: 10px;
+    text-align: left;
+    width: 100%;
+}
+
+.modal-add-channel-key {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.modal-add-channel-key-input {
+    background-color: #061726;
+    border: none;
+    border-radius: 5px 0px 0px 5px;
+    box-sizing: border-box;
+    color: white;
+    font-family: monospace;
+    font-size: 16px;
+    outline: none;
+    padding: 10px;
+    resize: none;
+    width: 90%;
+}
+
+.modal-add-channel-key-show {
+    align-items: center;
+    background-color: #061726;
+    border: none;
+    border-radius: 0px 5px 5px 0px;
+    display: flex;
+    justify-content: center;
+    width: 10%;
+}
+
+.modal-add-channel-key-show:hover {
+    cursor: pointer;
+}
+
+.modal-add-channel-key-show-icon {
+    height: 16px;
+    width: 16px;
+}
+
+.modal-add-channel-label {
+    color: white;
+    font-family: sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+.modal-add-channel-label-warning {
+    color: #f23160;
+    font-family: sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+/* HTML: <div class="loader"></div> */
+.loader {
+  width: 60px;
+  aspect-ratio: 6;
+  --_g: no-repeat radial-gradient(circle closest-side,#061726 90%,#0000);
+  background: 
+    var(--_g) 0%   50%,
+    var(--_g) 50%  50%,
+    var(--_g) 100% 50%;
+  background-size: calc(100%/3) 100%;
+  animation: l7 1s infinite linear;
+}
+@keyframes l7 {
+    33%{background-size:calc(100%/3) 0%  ,calc(100%/3) 100%,calc(100%/3) 100%}
+    50%{background-size:calc(100%/3) 100%,calc(100%/3) 0%  ,calc(100%/3) 100%}
+    66%{background-size:calc(100%/3) 100%,calc(100%/3) 100%,calc(100%/3) 0%  }
+}

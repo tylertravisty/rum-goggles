@@ -7,23 +7,27 @@ import (
 
 type migrationFunc func() error
 
-type service struct {
+type table struct {
 	name             string
 	automigrate      migrationFunc
 	destructivereset migrationFunc
 }
 
 type Services struct {
-	AccountS AccountService
-	Database *sql.DB
-	services []service
+	AccountS        AccountService
+	AccountChannelS AccountChannelService
+	ChannelS        ChannelService
+	Database        *sql.DB
+	tables          []table
 }
 
 func (s *Services) AutoMigrate() error {
-	for _, service := range s.services {
-		err := service.automigrate()
-		if err != nil {
-			return pkgErr(fmt.Sprintf("error auto-migrating %s service", service.name), err)
+	for _, table := range s.tables {
+		if table.automigrate != nil {
+			err := table.automigrate()
+			if err != nil {
+				return pkgErr(fmt.Sprintf("error auto-migrating %s table", table.name), err)
+			}
 		}
 	}
 
@@ -40,10 +44,12 @@ func (s *Services) Close() error {
 }
 
 func (s *Services) DestructiveReset() error {
-	for _, service := range s.services {
-		err := service.destructivereset()
-		if err != nil {
-			return pkgErr(fmt.Sprintf("error destructive-resetting %s service", service.name), err)
+	for _, table := range s.tables {
+		if table.destructivereset != nil {
+			err := table.destructivereset()
+			if err != nil {
+				return pkgErr(fmt.Sprintf("error destructive-resetting %s table", table.name), err)
+			}
 		}
 	}
 
@@ -78,7 +84,24 @@ func WithDatabase(file string) ServicesInit {
 func WithAccountService() ServicesInit {
 	return func(s *Services) error {
 		s.AccountS = NewAccountService(s.Database)
-		s.services = append(s.services, service{accountTable, s.AccountS.AutoMigrate, s.AccountS.DestructiveReset})
+		s.tables = append(s.tables, table{accountTable, s.AccountS.AutoMigrate, s.AccountS.DestructiveReset})
+
+		return nil
+	}
+}
+
+func WithAccountChannelService() ServicesInit {
+	return func(s *Services) error {
+		s.AccountChannelS = NewAccountChannelService(s.Database)
+
+		return nil
+	}
+}
+
+func WithChannelService() ServicesInit {
+	return func(s *Services) error {
+		s.ChannelS = NewChannelService(s.Database)
+		s.tables = append(s.tables, table{channelTable, s.ChannelS.AutoMigrate, s.ChannelS.DestructiveReset})
 
 		return nil
 	}

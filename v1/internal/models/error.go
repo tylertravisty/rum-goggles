@@ -7,6 +7,11 @@ const (
 
 	ErrAccountInvalidUsername ValidatorError = "invalid account username"
 	ErrAccountInvalidID       ValidatorError = "invalid account id"
+
+	ErrChannelInvalidAccountID ValidatorError = "invalid channel account id"
+	ErrChannelInvalidApiKey    ValidatorError = "invalid channel API key"
+	ErrChannelInvalidCID       ValidatorError = "invalid channel CID"
+	ErrChannelInvalidName      ValidatorError = "invalid channel name"
 )
 
 func pkgErr(prefix string, err error) error {
