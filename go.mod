@@ -1,10 +1,12 @@
 module github.com/tylertravisty/rum-goggles
 
-go 1.19
+go 1.21
+
+toolchain go1.22.0
 
 require (
 	github.com/tylertravisty/go-utils v0.0.0-20230524204414-6893ae548909
-	github.com/tylertravisty/rumble-livestream-lib-go v0.3.4
+	github.com/tylertravisty/rumble-livestream-lib-go v0.3.5
 	github.com/wailsapp/wails/v2 v2.7.1
 )
 
@@ -33,10 +35,10 @@ require (
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/wailsapp/go-webview2 v1.0.10 // indirect
 	github.com/wailsapp/mimetype v1.4.1 // indirect
-	golang.org/x/crypto v0.18.0 // indirect
+	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
-	golang.org/x/net v0.20.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
