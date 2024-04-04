@@ -1,5 +1,21 @@
 # Doing
 
+Add option to delete API key for accounts?
+
+First sign in screen: use different function than Login used by dashboard page?
+- Dashboard login function emits events that first sign in screen may not need
+
+Add better styles/icon to account details menu
+
+Loading screen replaces signin at /
+SignIn moves to /signin
+Check for accounts, if accounts -> dashboard, else -> signin
+Also check for new updates and tell user
+
+Trigger on event from API vs. trigger on event from chat
+- Chat bot trigger on follow requires API key
+    - Give user warning when setting up trigger on follow that it will only work with accounts/channels for which user has saved an API key
+
 Reset session information in config on logout
 
 Show error when choosing file "chooseFile"
@@ -14,7 +30,7 @@ Update
 - github.com/rhysd/go-github-selfupdate
 - github.com/inconshreveable/go-update
 
-Create loading indicator before API is called
+When API key is added, loading indicator freezes all user interactions. Need to give user a graceful way to stop/close add channel if it breaks.
 
 If api query returns error:
 - stop interval
