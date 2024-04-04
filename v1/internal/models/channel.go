@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
 const (
@@ -17,6 +18,35 @@ type Channel struct {
 	Name         *string `json:"name"`
 	ProfileImage *string `json:"profile_image"`
 	ApiKey       *string `json:"api_key"`
+}
+
+func (c *Channel) Id() *int64 {
+	return c.ID
+}
+
+func (c *Channel) KeyUrl() *string {
+	return c.ApiKey
+}
+
+func (c *Channel) LoggedIn() bool {
+	return false
+}
+
+func (c *Channel) String() *string {
+	if c.Name == nil {
+		return nil
+	}
+
+	s := "/c/" + strings.ReplaceAll(*c.Name, " ", "")
+	return &s
+}
+
+func (c *Channel) Title() *string {
+	return c.Name
+}
+
+func (c *Channel) Type() string {
+	return "Channel"
 }
 
 func (c *Channel) values() []any {
@@ -59,9 +89,13 @@ func (sc sqlChannel) toChannel() *Channel {
 
 type ChannelService interface {
 	AutoMigrate() error
+	ByAccount(a *Account) ([]Channel, error)
+	ByID(id int64) (*Channel, error)
 	ByName(name string) (*Channel, error)
 	Create(c *Channel) error
+	Delete(c *Channel) error
 	DestructiveReset() error
+	Update(c *Channel) error
 }
 
 func NewChannelService(db *sql.DB) ChannelService {
@@ -104,6 +138,74 @@ func (cs *channelService) createChannelTable() error {
 	}
 
 	return nil
+}
+
+func (cs *channelService) ByAccount(a *Account) ([]Channel, error) {
+	err := runAccountValFuncs(
+		a,
+		accountRequireID,
+	)
+	if err != nil {
+		return nil, pkgErr("", err)
+	}
+
+	selectQ := fmt.Sprintf(`
+		SELECT %s
+		FROM "%s"
+		WHERE account_id=?
+	`, channelColumns, channelTable)
+
+	rows, err := cs.Database.Query(selectQ, a.ID)
+	if err != nil {
+		return nil, pkgErr("error executing select query", err)
+	}
+	defer rows.Close()
+
+	channels := []Channel{}
+	for rows.Next() {
+		sc := &sqlChannel{}
+
+		err = sc.scan(rows)
+		if err != nil {
+			return nil, pkgErr("error scanning row", err)
+		}
+
+		channels = append(channels, *sc.toChannel())
+	}
+	err = rows.Err()
+	if err != nil && err != sql.ErrNoRows {
+		return nil, pkgErr("error iterating over rows", err)
+	}
+
+	return channels, nil
+}
+
+func (cs *channelService) ByID(id int64) (*Channel, error) {
+	err := runChannelValFuncs(
+		&Channel{ID: &id},
+		channelRequireID,
+	)
+	if err != nil {
+		return nil, pkgErr("", err)
+	}
+
+	selectQ := fmt.Sprintf(`
+		SELECT %s
+		FROM "%s"
+		WHERE id=?
+	`, channelColumns, channelTable)
+
+	var sc sqlChannel
+	row := cs.Database.QueryRow(selectQ, id)
+	err = sc.scan(row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, pkgErr("error executing select query", err)
+	}
+
+	return sc.toChannel(), nil
 }
 
 func (cs *channelService) ByName(name string) (*Channel, error) {
@@ -160,6 +262,28 @@ func (cs *channelService) Create(c *Channel) error {
 	return nil
 }
 
+func (cs *channelService) Delete(c *Channel) error {
+	err := runChannelValFuncs(
+		c,
+		channelRequireID,
+	)
+	if err != nil {
+		return pkgErr("invalid channel", err)
+	}
+
+	deleteQ := fmt.Sprintf(`
+		DELETE FROM "%s"
+		WHERE id=?
+	`, channelTable)
+
+	_, err = cs.Database.Exec(deleteQ, c.ID)
+	if err != nil {
+		return pkgErr("error executing delete query", err)
+	}
+
+	return nil
+}
+
 func (cs *channelService) DestructiveReset() error {
 	err := cs.dropChannelTable()
 	if err != nil {
@@ -177,6 +301,33 @@ func (cs *channelService) dropChannelTable() error {
 	_, err := cs.Database.Exec(dropQ)
 	if err != nil {
 		return fmt.Errorf("error executing drop query: %v", err)
+	}
+
+	return nil
+}
+
+func (cs *channelService) Update(c *Channel) error {
+	err := runChannelValFuncs(
+		c,
+		channelRequireAccountID,
+		channelRequireApiKey,
+		channelRequireCID,
+		channelRequireName,
+	)
+	if err != nil {
+		return pkgErr("invalid channel", err)
+	}
+
+	columns := columnsNoID(channelColumns)
+	updateQ := fmt.Sprintf(`
+		UPDATE "%s"
+		SET %s
+		WHERE id=?
+	`, channelTable, set(columns))
+
+	_, err = cs.Database.Exec(updateQ, c.valuesEndID()...)
+	if err != nil {
+		return pkgErr("error executing update query", err)
 	}
 
 	return nil
@@ -210,6 +361,14 @@ func channelRequireAccountID(c *Channel) error {
 func channelRequireApiKey(c *Channel) error {
 	if c.ApiKey == nil || *c.ApiKey == "" {
 		return ErrChannelInvalidApiKey
+	}
+
+	return nil
+}
+
+func channelRequireID(c *Channel) error {
+	if c.ID == nil || *c.ID < 1 {
+		return ErrChannelInvalidID
 	}
 
 	return nil

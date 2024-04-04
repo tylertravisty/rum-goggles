@@ -53,13 +53,20 @@ func (c *Client) getChatInfo() (*ChatInfo, error) {
 	defer resp.Body.Close()
 
 	r := bufio.NewReader(resp.Body)
-	line, _, err := r.ReadLine()
-	var lineS string
+	//line, _, err := r.ReadLine()
+	lineS, err := r.ReadString('\n')
+	//var lineS string
 	for err == nil {
-		lineS = string(line)
+		//lineS = string(line)
 		if strings.Contains(lineS, "RumbleChat(") {
 			start := strings.Index(lineS, "RumbleChat(") + len("RumbleChat(")
+			if start == -1 {
+				return nil, fmt.Errorf("error finding chat function in webpage")
+			}
 			end := strings.Index(lineS[start:], ");")
+			if end == -1 {
+				return nil, fmt.Errorf("error finding end of chat function in webpage")
+			}
 			argsS := strings.ReplaceAll(lineS[start:start+end], ", ", ",")
 			argsS = strings.Replace(argsS, "[", "\"[", 1)
 			n := strings.LastIndex(argsS, "]")
@@ -76,7 +83,8 @@ func (c *Client) getChatInfo() (*ChatInfo, error) {
 			}
 			return &ChatInfo{info[0], info[1], channelID}, nil
 		}
-		line, _, err = r.ReadLine()
+		//line, _, err = r.ReadLine()
+		lineS, err = r.ReadString('\n')
 	}
 	if err != nil {
 		return nil, fmt.Errorf("error reading line from stream webpage: %v", err)

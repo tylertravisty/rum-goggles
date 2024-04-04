@@ -19,6 +19,35 @@ type Account struct {
 	ApiKey       *string `json:"api_key"`
 }
 
+func (a *Account) Id() *int64 {
+	return a.ID
+}
+
+func (a *Account) KeyUrl() *string {
+	return a.ApiKey
+}
+
+func (a *Account) LoggedIn() bool {
+	return a.Cookies != nil
+}
+
+func (a *Account) String() *string {
+	if a.Username == nil {
+		return nil
+	}
+
+	s := "/user/" + *a.Username
+	return &s
+}
+
+func (a *Account) Title() *string {
+	return a.Username
+}
+
+func (a *Account) Type() string {
+	return "Account"
+}
+
 func (a *Account) values() []any {
 	return []any{a.ID, a.UID, a.Username, a.Cookies, a.ProfileImage, a.ApiKey}
 }
@@ -60,8 +89,10 @@ func (sa sqlAccount) toAccount() *Account {
 type AccountService interface {
 	All() ([]Account, error)
 	AutoMigrate() error
+	ByID(id int64) (*Account, error)
 	ByUsername(username string) (*Account, error)
-	Create(a *Account) error
+	Create(a *Account) (int64, error)
+	Delete(a *Account) error
 	DestructiveReset() error
 	Update(a *Account) error
 }
@@ -138,6 +169,34 @@ func (as *accountService) createAccountTable() error {
 	return nil
 }
 
+func (as *accountService) ByID(id int64) (*Account, error) {
+	err := runAccountValFuncs(
+		&Account{ID: &id},
+		accountRequireID,
+	)
+	if err != nil {
+		return nil, pkgErr("", err)
+	}
+
+	selectQ := fmt.Sprintf(`
+		SELECT %s
+		FROM "%s"
+		WHERE id=?
+	`, accountColumns, accountTable)
+
+	var sa sqlAccount
+	row := as.Database.QueryRow(selectQ, id)
+	err = sa.scan(row)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, pkgErr("error executing select query", err)
+	}
+
+	return sa.toAccount(), nil
+}
+
 func (as *accountService) ByUsername(username string) (*Account, error) {
 	err := runAccountValFuncs(
 		&Account{Username: &username},
@@ -166,24 +225,50 @@ func (as *accountService) ByUsername(username string) (*Account, error) {
 	return sa.toAccount(), nil
 }
 
-func (as *accountService) Create(a *Account) error {
+func (as *accountService) Create(a *Account) (int64, error) {
 	err := runAccountValFuncs(
 		a,
 		accountRequireUsername,
 	)
 	if err != nil {
-		return pkgErr("invalid account", err)
+		return -1, pkgErr("invalid account", err)
 	}
 
 	columns := columnsNoID(accountColumns)
 	insertQ := fmt.Sprintf(`
 		INSERT INTO "%s" (%s)
 		VALUES (%s)
+		RETURNING id
 	`, accountTable, columns, values(columns))
 
-	_, err = as.Database.Exec(insertQ, a.valuesNoID()...)
+	// _, err = as.Database.Exec(insertQ, a.valuesNoID()...)
+	var id int64
+	row := as.Database.QueryRow(insertQ, a.valuesNoID()...)
+	err = row.Scan(&id)
 	if err != nil {
-		return pkgErr("error executing insert query", err)
+		return -1, pkgErr("error executing insert query", err)
+	}
+
+	return id, nil
+}
+
+func (as *accountService) Delete(a *Account) error {
+	err := runAccountValFuncs(
+		a,
+		accountRequireID,
+	)
+	if err != nil {
+		return pkgErr("invalid account", err)
+	}
+
+	deleteQ := fmt.Sprintf(`
+		DELETE FROM "%s"
+		WHERE id=?
+	`, accountTable)
+
+	_, err = as.Database.Exec(deleteQ, a.ID)
+	if err != nil {
+		return pkgErr("error executing delete query", err)
 	}
 
 	return nil
@@ -230,7 +315,7 @@ func (as *accountService) Update(a *Account) error {
 
 	_, err = as.Database.Exec(updateQ, a.valuesEndID()...)
 	if err != nil {
-		return pkgErr(fmt.Sprintf("error executing update query", accountTable), err)
+		return pkgErr("error executing update query", err)
 	}
 
 	return nil

@@ -1,17 +1,33 @@
 import chevron_right from './icons/chevron-right.png';
 import circle_green_background from './icons/circle-green-background.png';
+import circle_red_background from './icons/circle-red-background.png';
 import eye from './icons/eye.png';
+import eye_red from './icons/eye-red.png';
 import eye_slash from './icons/eye-slash.png';
+import gear_fill from './icons/gear-fill.png';
 import heart from './icons/heart-fill.png';
-import plus_circle from './icons/plus-circle-fill.png'
+import pause from './icons/pause-circle-green.png';
+import play from './icons/play-circle-green.png';
+import plus_circle from './icons/plus-circle-fill.png';
+import star from './icons/star-fill.png';
+import thumbs_down from './icons/hand-thumbs-down-fill.png';
+import thumbs_up from './icons/hand-thumbs-up-fill.png';
 import x_lg from './icons/x-lg.png';
 import logo from './logo/logo.png';
 
 export const ChevronRight = chevron_right;
 export const CircleGreenBackground = circle_green_background;
+export const CircleRedBackground = circle_red_background;
 export const Eye = eye;
+export const EyeRed = eye_red;
 export const EyeSlash = eye_slash;
+export const Gear = gear_fill;
 export const Heart = heart;
 export const Logo = logo;
+export const Pause = pause;
+export const Play = play;
 export const PlusCircle = plus_circle;
+export const Star = star;
+export const ThumbsDown = thumbs_down;
+export const ThumbsUp = thumbs_up;
 export const XLg = x_lg;

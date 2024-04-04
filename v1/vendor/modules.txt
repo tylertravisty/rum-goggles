@@ -59,7 +59,7 @@ github.com/r3labs/sse/v2
 # github.com/rivo/uniseg v0.4.4
 ## explicit; go 1.18
 github.com/rivo/uniseg
-# github.com/robertkrimen/otto v0.2.1
+# github.com/robertkrimen/otto v0.3.0
 ## explicit; go 1.18
 github.com/robertkrimen/otto
 github.com/robertkrimen/otto/ast
@@ -77,7 +77,7 @@ github.com/tkrajina/go-reflector/reflector
 # github.com/tylertravisty/go-utils v0.0.0-20230524204414-6893ae548909
 ## explicit; go 1.16
 github.com/tylertravisty/go-utils/random
-# github.com/tylertravisty/rumble-livestream-lib-go v0.3.4
+# github.com/tylertravisty/rumble-livestream-lib-go v0.3.5
 ## explicit; go 1.19
 github.com/tylertravisty/rumble-livestream-lib-go
 # github.com/valyala/bytebufferpool v1.0.0
@@ -140,14 +140,14 @@ github.com/wailsapp/wails/v2/pkg/options/linux
 github.com/wailsapp/wails/v2/pkg/options/mac
 github.com/wailsapp/wails/v2/pkg/options/windows
 github.com/wailsapp/wails/v2/pkg/runtime
-# golang.org/x/crypto v0.18.0
+# golang.org/x/crypto v0.21.0
 ## explicit; go 1.18
 golang.org/x/crypto/acme
 golang.org/x/crypto/acme/autocert
 # golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 ## explicit; go 1.20
 golang.org/x/exp/constraints
-# golang.org/x/net v0.20.0
+# golang.org/x/net v0.22.0
 ## explicit; go 1.18
 golang.org/x/net/context
 golang.org/x/net/html
@@ -158,7 +158,7 @@ golang.org/x/net/http2/h2c
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/websocket
-# golang.org/x/sys v0.16.0
+# golang.org/x/sys v0.18.0
 ## explicit; go 1.18
 golang.org/x/sys/unix
 golang.org/x/sys/windows

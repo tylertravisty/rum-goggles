@@ -31,7 +31,7 @@
     text-decoration: none;
     /* width: 20%; */
     height: 40px;
-    width: 70px;
+    min-width: 70px;
 }
 
 .modal-button-cancel {
@@ -46,21 +46,35 @@
     text-decoration: none;
     /* width: 20%; */
     height: 40px;
-    width: 70px;
+    min-width: 70px;
 }
 
 .modal-button-delete {
     background-color: transparent;
-    border: 1px solid red;
+    background-color: #f23160;
+    border: 1px solid #f23160;
     border-radius: 5px;
-    color: red;
+    color: #eee;
     cursor: pointer;
     font-size: 18px;
     font-weight: bold;
     text-decoration: none;
-    /* width: 20%; */
     height: 40px;
-    width: 70px;
+    min-width: 70px;
+}
+
+.modal-button-delete-inactive {
+    background-color: transparent;
+    background-color: #d6e0ea80;
+    border: 1px solid #d6e0ea80;
+    border-radius: 5px;
+    color: #eee;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    text-decoration: none;
+    height: 40px;
+    min-width: 70px;
 }
 
 .modal-close {
@@ -121,6 +135,20 @@
     font-size: 24px;
 }
 
+.small-modal-button-cancel {
+    background-color: transparent;
+    border: 1px solid #495a6a;
+    border-radius: 5px;
+    color: #495a6a;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    text-decoration: none;
+    /* width: 20%; */
+    height: 40px;
+    min-width: 70px;
+}
+
 .small-modal-button-delete {
     background-color: red;
     border: none;
@@ -131,7 +159,7 @@
     font-weight: bold;
     text-decoration: none;
     /* width: 20%; */
-    width: 70px;
+    min-width: 70px;
 }
 
 .small-modal-container {

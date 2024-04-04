@@ -6,7 +6,7 @@ toolchain go1.22.0
 
 require (
 	github.com/mattn/go-sqlite3 v1.14.22
-	github.com/tylertravisty/rumble-livestream-lib-go v0.3.4
+	github.com/tylertravisty/rumble-livestream-lib-go v0.3.5
 	github.com/wailsapp/wails/v2 v2.8.0
 )
 
@@ -28,7 +28,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/r3labs/sse/v2 v2.10.0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
-	github.com/robertkrimen/otto v0.2.1 // indirect
+	github.com/robertkrimen/otto v0.3.0 // indirect
 	github.com/samber/lo v1.38.1 // indirect
 	github.com/tkrajina/go-reflector v0.5.6 // indirect
 	github.com/tylertravisty/go-utils v0.0.0-20230524204414-6893ae548909 // indirect
@@ -36,10 +36,10 @@ require (
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/wailsapp/go-webview2 v1.0.10 // indirect
 	github.com/wailsapp/mimetype v1.4.1 // indirect
-	golang.org/x/crypto v0.18.0 // indirect
+	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
-	golang.org/x/net v0.20.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/net v0.22.0 // indirect
+	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/cenkalti/backoff.v1 v1.1.0 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect

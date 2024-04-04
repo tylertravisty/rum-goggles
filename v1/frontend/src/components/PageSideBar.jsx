@@ -1,16 +1,37 @@
 import { useEffect, useState } from 'react';
 import { Modal, SmallModal } from './Modal';
-import { AccountList, AddChannel, Login } from '../../wailsjs/go/main/App';
+import {
+    AccountList,
+    AddPage,
+    Login,
+    OpenAccount,
+    OpenChannel,
+    PageStatus,
+} from '../../wailsjs/go/main/App';
+import { EventsOff, EventsOn } from '../../wailsjs/runtime/runtime';
 
-import { ChevronRight, CircleGreenBackground, Eye, EyeSlash, PlusCircle } from '../assets';
-import './ChannelSideBar.css';
+import {
+    ChevronRight,
+    CircleGreenBackground,
+    CircleRedBackground,
+    Eye,
+    EyeSlash,
+    PlusCircle,
+} from '../assets';
+import './PageSideBar.css';
 
-function ChannelSideBar(props) {
+function PageSideBar(props) {
     const [accounts, setAccounts] = useState({});
     const [error, setError] = useState('');
     const [addOpen, setAddOpen] = useState(false);
     const [refresh, setRefresh] = useState(false);
     const [scrollY, setScrollY] = useState(0);
+
+    useEffect(() => {
+        EventsOn('PageSideBarAccounts', (event) => {
+            setAccounts(event);
+        });
+    }, []);
 
     useEffect(() => {
         AccountList()
@@ -38,27 +59,39 @@ function ChannelSideBar(props) {
         setScrollY(event.target.scrollTop);
     };
 
+    const openAccount = (account) => {
+        OpenAccount(account.id).catch((error) => setError(error));
+    };
+
+    const openChannel = (channel) => {
+        OpenChannel(channel.id).catch((error) => setError(error));
+    };
+
     return (
         <>
-            <ModalAdd
-                onClose={() => setAddOpen(false)}
-                onRefresh={() => {
-                    setRefresh(!refresh);
-                }}
-                show={addOpen}
-            />
-            <div className='channel-sidebar'>
-                <div className='channel-sidebar-body' onScroll={handleScroll}>
+            {addOpen && (
+                <ModalAdd
+                    onClose={() => setAddOpen(false)}
+                    onRefresh={() => {
+                        setRefresh(!refresh);
+                    }}
+                    show={addOpen}
+                />
+            )}
+            <div className='page-sidebar'>
+                <div className='page-sidebar-body' onScroll={handleScroll}>
                     {sortAccounts().map((account, index) => (
                         <AccountChannels
                             account={accounts[account]}
                             key={index}
+                            openAccount={openAccount}
+                            openChannel={openChannel}
                             scrollY={scrollY}
                             top={index === 0}
                         />
                     ))}
                 </div>
-                <div className='channel-sidebar-footer'>
+                <div className='page-sidebar-footer'>
                     <ButtonIcon
                         hoverText={'Add an account/channel'}
                         onClick={() => setAddOpen(true)}
@@ -70,7 +103,7 @@ function ChannelSideBar(props) {
     );
 }
 
-export default ChannelSideBar;
+export default PageSideBar;
 
 function AccountChannels(props) {
     const sortChannels = () => {
@@ -84,12 +117,24 @@ function AccountChannels(props) {
     if (props.account.account !== undefined) {
         return (
             <div
-                className='channel-sidebar-account-list'
+                className='page-sidebar-account-list'
                 style={props.top ? { borderTop: 'none' } : {}}
             >
-                <AccountIcon account={props.account.account} key={0} scrollY={props.scrollY} />
+                <button
+                    className='page-sidebar-button'
+                    key={0}
+                    onClick={() => props.openAccount(props.account.account)}
+                >
+                    <AccountIcon account={props.account.account} scrollY={props.scrollY} />
+                </button>
                 {sortChannels().map((channel, index) => (
-                    <ChannelIcon channel={channel} key={index + 1} scrollY={props.scrollY} />
+                    <button
+                        className='page-sidebar-button'
+                        key={index + 1}
+                        onClick={() => props.openChannel(channel)}
+                    >
+                        <ChannelIcon channel={channel} scrollY={props.scrollY} />
+                    </button>
                 ))}
             </div>
         );
@@ -97,25 +142,82 @@ function AccountChannels(props) {
 }
 
 function AccountIcon(props) {
+    const [apiActive, setApiActive] = useState(false);
     const [hover, setHover] = useState(false);
+    const [isLive, setIsLive] = useState(false);
+    const [loggedIn, setLoggedIn] = useState(props.account.cookies !== null);
+    const [username, setUsername] = useState(props.account.username);
+
+    const iconBorder = () => {
+        if (!apiActive) {
+            return '3px solid #3377cc';
+        }
+        if (isLive) {
+            return '3px solid #85c742';
+        } else {
+            return '3px solid #f23160';
+        }
+    };
+
+    const pageName = (name) => {
+        if (name === undefined) return;
+        return '/user/' + name;
+    };
+
+    useEffect(() => {
+        if (username !== props.account.username) {
+            EventsOff(
+                'ApiActive-' + pageName(username),
+                'LoggedIn-' + pageName(username),
+                'PageLive-' + pageName(username)
+            );
+            setApiActive(false);
+            setIsLive(false);
+        }
+
+        EventsOn('ApiActive-' + pageName(props.account.username), (event) => {
+            setApiActive(event);
+        });
+
+        EventsOn('LoggedIn-' + pageName(props.account.username), (event) => {
+            setLoggedIn(event);
+        });
+
+        EventsOn('PageLive-' + pageName(props.account.username), (event) => {
+            setIsLive(event);
+        });
+
+        setUsername(props.account.username);
+    }, [props.account.username]);
+
+    useEffect(() => {
+        if (username !== '') {
+            PageStatus(pageName(username));
+        }
+    }, [username]);
 
     return (
         <div
-            className='channel-sidebar-icon'
+            className='page-sidebar-icon'
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
         >
             {props.account.profile_image === null ? (
-                <span className='channel-sidebar-icon-initial'>
+                <span className='page-sidebar-icon-initial' style={{ border: iconBorder() }}>
                     {props.account.username[0].toUpperCase()}
                 </span>
             ) : (
-                <img className='channel-sidebar-icon-image' src={props.account.profile_image} />
+                <img
+                    className='page-sidebar-icon-image'
+                    src={props.account.profile_image}
+                    style={{ border: iconBorder() }}
+                />
             )}
-            <img className='channel-sidebar-icon-account' src={CircleGreenBackground} />
-            {hover && (
-                <HoverName name={'/user/' + props.account.username} scrollY={props.scrollY} />
-            )}
+            <img
+                className='page-sidebar-icon-account'
+                src={loggedIn ? CircleGreenBackground : CircleRedBackground}
+            />
+            {hover && <HoverName name={pageName(username)} scrollY={props.scrollY} />}
         </div>
     );
 }
@@ -125,12 +227,12 @@ function ButtonIcon(props) {
 
     return (
         <div
-            className='channel-sidebar-icon'
+            className='page-sidebar-icon'
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
         >
-            <button className='channel-sidebar-button' onClick={props.onClick}>
-                <img className='channel-sidebar-button-icon' src={PlusCircle} />
+            <button className='page-sidebar-button' onClick={props.onClick}>
+                <img className='page-sidebar-button-icon' src={PlusCircle} />
             </button>
             {hover && <HoverName name={props.hoverText} scrollY={props.scrollY} />}
         </div>
@@ -138,26 +240,69 @@ function ButtonIcon(props) {
 }
 
 function ChannelIcon(props) {
+    const [apiActive, setApiActive] = useState(false);
+    const [channelName, setChannelName] = useState(props.channel.name);
     const [hover, setHover] = useState(false);
+    const [isLive, setIsLive] = useState(false);
+
+    const iconBorder = () => {
+        if (!apiActive) {
+            return '3px solid #3377cc';
+        }
+        if (isLive) {
+            return '3px solid #85c742';
+        } else {
+            return '3px solid #f23160';
+        }
+    };
+
+    const pageName = (name) => {
+        if (name === undefined) return;
+        return '/c/' + name.replace(/\s/g, '');
+    };
+
+    useEffect(() => {
+        if (channelName !== props.channel.name) {
+            EventsOff('PageLive-' + pageName(channelName), 'ApiActive-' + pageName(channelName));
+            setApiActive(false);
+            setIsLive(false);
+        }
+
+        EventsOn('PageLive-' + pageName(props.channel.name), (event) => {
+            setIsLive(event);
+        });
+
+        EventsOn('ApiActive-' + pageName(props.channel.name), (event) => {
+            setApiActive(event);
+        });
+
+        setChannelName(props.channel.name);
+    }, [props.channel.name]);
+
+    useEffect(() => {
+        if (channelName !== '') {
+            PageStatus(pageName(channelName));
+        }
+    }, [channelName]);
+
     return (
         <div
-            className='channel-sidebar-icon'
+            className='page-sidebar-icon'
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
         >
             {props.channel.profile_image === null ? (
-                <span className='channel-sidebar-icon-initial'>
+                <span className='page-sidebar-icon-initial' style={{ border: iconBorder() }}>
                     {props.channel.name[0].toUpperCase()}
                 </span>
             ) : (
-                <img className='channel-sidebar-icon-image' src={props.channel.profile_image} />
-            )}
-            {hover && (
-                <HoverName
-                    name={'/c/' + props.channel.name.replace(/\s/g, '')}
-                    scrollY={props.scrollY}
+                <img
+                    className='page-sidebar-icon-image'
+                    src={props.channel.profile_image}
+                    style={{ border: iconBorder() }}
                 />
             )}
+            {hover && <HoverName name={pageName(channelName)} scrollY={props.scrollY} />}
         </div>
     );
 }
@@ -165,10 +310,10 @@ function ChannelIcon(props) {
 function HoverName(props) {
     return (
         <div
-            className='channel-sidebar-icon-hover'
+            className='page-sidebar-icon-hover'
             style={{ transform: 'translate(75px, -' + (50 + props.scrollY) + 'px)' }}
         >
-            <span className='channel-sidebar-icon-hover-text'>{props.name}</span>
+            <span className='page-sidebar-icon-hover-text'>{props.name}</span>
         </div>
     );
 }
@@ -220,7 +365,7 @@ function ModalAdd(props) {
 
     useEffect(() => {
         if (addChannelLoading) {
-            AddChannel(channelKey)
+            AddPage(channelKey)
                 .then(() => {
                     reset();
                     props.onClose();
@@ -318,15 +463,17 @@ function ModalAdd(props) {
 
     return (
         <>
-            <SmallModal
-                onClose={() => setError('')}
-                show={error !== ''}
-                style={{ minWidth: '300px', maxWidth: '200px', maxHeight: '200px' }}
-                title={'Error'}
-                message={error}
-                submitButton={'OK'}
-                onSubmit={() => setError('')}
-            />
+            {error !== '' && (
+                <SmallModal
+                    onClose={() => setError('')}
+                    show={error !== ''}
+                    style={{ minWidth: '300px', maxWidth: '200px', maxHeight: '200px' }}
+                    title={'Error'}
+                    message={error}
+                    submitButton={'OK'}
+                    onSubmit={() => setError('')}
+                />
+            )}
             <Modal
                 cancelButton={stage !== 'start' ? 'Back' : ''}
                 onCancel={back}

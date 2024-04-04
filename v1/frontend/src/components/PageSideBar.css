@@ -1,5 +1,4 @@
-
-.channel-sidebar {
+.page-sidebar {
     align-items: center;
     background-color: #061726;
     display: flex;
@@ -7,18 +6,19 @@
     justify-content: space-between;
     height: 100%;
     padding: 0px 10px;
+    width: 60px;
 }
 
-.channel-sidebar-account-list {
+.page-sidebar-account-list {
     border-top: 2px solid #273848;
     padding-bottom: 10px;
 }
 
-.channel-sidebar-body {
+.page-sidebar-body {
     overflow-y: auto;
 }
 
-.channel-sidebar-button {
+.page-sidebar-button {
     align-items: center;
     background-color: #061726;
     border: none;
@@ -27,27 +27,31 @@
     padding: 0px;
 }
 
-.channel-sidebar-button:hover {
+.page-sidebar-button:hover {
     cursor: pointer;
 }
 
-.channel-sidebar-button-icon {
+.page-sidebar-button-icon {
     height: 60px;
     width: 60px;
 }
 
-.channel-sidebar-footer {
+.page-sidebar-footer {
     padding-bottom: 10px;
 }
 
-.channel-sidebar-icon {
+.page-sidebar-icon {
     height: 60px;
     margin-top: 10px;
     position: relative;
     width: 60px;
 }
 
-.channel-sidebar-icon-account {
+.page-sidebar-icon:hover {
+    cursor: pointer;
+}
+
+.page-sidebar-icon-account {
     bottom: 0px;
     height: 24px;
     left: 36px;
@@ -55,7 +59,7 @@
     width: 24px;
 }
 
-.channel-sidebar-icon-hover {
+.page-sidebar-icon-hover {
     background-color: #061726;
     border-radius: 5px;
     color: black; 
@@ -64,7 +68,7 @@
     /* transform: translate(75px, -50px); */
     z-index: 10;
 }
-.channel-sidebar-icon-hover:before {
+.page-sidebar-icon-hover:before {
    content:"";
    position: absolute;
    width: 0;
@@ -75,34 +79,35 @@
    margin: 7px 0 0 -13px;
 }
 
-.channel-sidebar-icon-hover-text {
+.page-sidebar-icon-hover-text {
     color: white;
     font-family: sans-serif;
     font-weight: bold;
     font-size: 16px;
 }
 
-.channel-sidebar-icon-image {
+.page-sidebar-icon-image {
     /* border: 3px solid #85c742; */
     /* border: 3px solid #ec0; */
-    border: 3px solid #f23160;
+    /* border: 3px solid #f23160; */
     border-radius: 50%;
     height: 54px;
     transition: border-radius 0.25s;
     width: 54px;
 }
 
-.channel-sidebar-icon-image:hover {
+.page-sidebar-icon-image:hover {
     border-radius: 30%;
     transition: border-radius 0.25s;
 }
 
-.channel-sidebar-icon-initial {
+.page-sidebar-icon-initial {
     align-items: center;
     background-color: #3377cc;
+    /* border: 3px solid #3377cc; */
     /* border: 3px solid #85c742; */
     /* border: 3px solid #ec0; */
-    border: 3px solid #f23160;
+    /* border: 3px solid #f23160; */
     border-radius: 50%;
     color: #eee;
     display: flex;
@@ -115,7 +120,7 @@
     width: 54px;
 }
 
-.channel-sidebar-icon-initial:hover {
+.page-sidebar-icon-initial:hover {
     border-radius: 30%;
     transition: border-radius 0.25s;
 }

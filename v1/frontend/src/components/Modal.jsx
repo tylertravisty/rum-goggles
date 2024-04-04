@@ -27,7 +27,14 @@ export function Modal(props) {
                         </button>
                     )}
                     {props.deleteButton && (
-                        <button className='modal-button-delete' onClick={props.onDelete}>
+                        <button
+                            className={
+                                props.deleteActive
+                                    ? 'modal-button-delete'
+                                    : 'modal-button-delete-inactive'
+                            }
+                            onClick={props.onDelete}
+                        >
                             {props.deleteButton}
                         </button>
                     )}
@@ -70,7 +77,7 @@ export function SmallModal(props) {
                 </div>
                 <div className='small-modal-footer'>
                     {props.cancelButton && (
-                        <button className='modal-button-cancel' onClick={props.onCancel}>
+                        <button className='small-modal-button-cancel' onClick={props.onCancel}>
                             {props.cancelButton}
                         </button>
                     )}

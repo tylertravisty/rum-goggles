@@ -11,6 +11,7 @@ const (
 	ErrChannelInvalidAccountID ValidatorError = "invalid channel account id"
 	ErrChannelInvalidApiKey    ValidatorError = "invalid channel API key"
 	ErrChannelInvalidCID       ValidatorError = "invalid channel CID"
+	ErrChannelInvalidID        ValidatorError = "invalid channel ID"
 	ErrChannelInvalidName      ValidatorError = "invalid channel name"
 )
 
