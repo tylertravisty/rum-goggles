@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -71,30 +72,6 @@ func (a *App) log() error {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.api.Startup(ctx)
-
-	db, err := config.Database()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	services, err := models.NewServices(
-		models.WithDatabase(db),
-		models.WithAccountService(),
-		models.WithChannelService(),
-		models.WithAccountChannelService(),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = services.AutoMigrate()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	a.services = services
-
-	// TODO: check for update - if available, pop up window
 }
 
 func (a *App) shutdown(ctx context.Context) {
@@ -120,6 +97,102 @@ func (a *App) shutdown(ctx context.Context) {
 		}
 	}
 	a.logFileMu.Unlock()
+}
+
+func (a *App) Start() (bool, error) {
+
+	runtime.EventsEmit(a.ctx, "StartupMessage", "Initializing database...")
+	err := a.initServices()
+	if err != nil {
+		a.logError.Println("error initializing services:", err)
+		return false, fmt.Errorf("Error starting Rum Goggles. Try restarting.")
+	}
+	runtime.EventsEmit(a.ctx, "StartupMessage", "Initializing database complete.")
+
+	runtime.EventsEmit(a.ctx, "StartupMessage", "Verifying account sessions...")
+	count, err := a.verifyAccounts()
+	if err != nil {
+		a.logError.Println("error verifying accounts:", err)
+		return false, fmt.Errorf("Error starting Rum Goggles. Try restarting.")
+	}
+	runtime.EventsEmit(a.ctx, "StartupMessage", "Verifying account sessions complete.")
+
+	// TODO: check for update - if available, pop up window
+	// runtime.EventsEmit(a.ctx, "StartupMessage", "Checking for updates...")
+	// update, err = a.checkForUpdate()
+	// runtime.EventsEmit(a.ctx, "StartupMessage", "Checking for updates complete.")
+
+	signin := true
+	if count > 0 {
+		signin = false
+	}
+
+	return signin, nil
+}
+
+func (a *App) initServices() error {
+	db, err := config.Database()
+	if err != nil {
+		return fmt.Errorf("error getting database config: %v", err)
+	}
+
+	services, err := models.NewServices(
+		models.WithDatabase(db),
+		models.WithAccountService(),
+		models.WithChannelService(),
+		models.WithAccountChannelService(),
+	)
+	if err != nil {
+		return fmt.Errorf("error initializing services: %v", err)
+	}
+
+	err = services.AutoMigrate()
+	if err != nil {
+		return fmt.Errorf("error auto-migrating services: %v", err)
+	}
+
+	a.services = services
+
+	return nil
+}
+
+func (a *App) verifyAccounts() (int, error) {
+	accounts, err := a.services.AccountS.All()
+	if err != nil {
+		return -1, fmt.Errorf("error querying all accounts: %v", err)
+	}
+
+	a.clientsMu.Lock()
+	defer a.clientsMu.Unlock()
+	for _, account := range accounts {
+		if account.Cookies != nil {
+			var cookies []*http.Cookie
+			err = json.Unmarshal([]byte(*account.Cookies), &cookies)
+			if err != nil {
+				return -1, fmt.Errorf("error un-marshaling cookie string: %v", err)
+			}
+			client, err := rumblelivestreamlib.NewClient(rumblelivestreamlib.NewClientOptions{Cookies: cookies})
+			if err != nil {
+				return -1, fmt.Errorf("error creating new client: %v", err)
+			}
+			if account.Username == nil {
+				return -1, fmt.Errorf("account username is nil")
+			}
+			loggedIn, err := client.LoggedIn()
+			if err != nil {
+				return -1, fmt.Errorf("error check if account is logged in: %v", err)
+			}
+			if loggedIn {
+				a.clients[*account.Username] = client
+			} else {
+				account.Cookies = nil
+				err = a.services.AccountS.Update(&account)
+				fmt.Errorf("error updating account: %v", err)
+			}
+		}
+	}
+
+	return len(accounts), nil
 }
 
 func (a *App) AddPage(apiKey string) error {
@@ -302,6 +375,20 @@ func (a *App) Logout(id int64) error {
 	}
 
 	if acct.Cookies != nil {
+		if !exists {
+			var cookies []*http.Cookie
+			err = json.Unmarshal([]byte(*acct.Cookies), &cookies)
+			if err != nil {
+				a.logError.Println("error un-marshaling cookie string:", err)
+				return fmt.Errorf("Error logging out. Try again.")
+			}
+			client, err = rumblelivestreamlib.NewClient(rumblelivestreamlib.NewClientOptions{Cookies: cookies})
+			err = client.Logout()
+			if err != nil {
+				a.logError.Println("error logging out:", err)
+				return fmt.Errorf("Error logging out. Try again.")
+			}
+		}
 		acct.Cookies = nil
 		err = a.services.AccountS.Update(acct)
 		if err != nil {

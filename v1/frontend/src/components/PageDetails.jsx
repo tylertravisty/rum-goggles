@@ -11,6 +11,7 @@ import {
     Star,
     ThumbsDown,
     ThumbsUp,
+    ChessRook,
 } from '../assets';
 import './PageDetails.css';
 import {
@@ -638,7 +639,9 @@ function PageEvent(props) {
         <div className='page-event'>
             <div className='page-event-left'>
                 {props.event.followed_on && <img className='page-event-icon' src={Heart}></img>}
-                {props.event.subscribed_on && <img className='page-event-icon' src={Star}></img>}
+                {props.event.subscribed_on && (
+                    <img className='page-event-icon' src={ChessRook}></img>
+                )}
                 <div className='page-event-left-text'>
                     <span className='page-event-username'>{props.event.username}</span>
                     <span className='page-event-description'>

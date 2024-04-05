@@ -17,17 +17,17 @@ function SignIn() {
     const [username, setUsername] = useState('');
     const updateUsername = (event) => setUsername(event.target.value);
 
-    useEffect(() => {
-        SignedIn()
-            .then((signedIn) => {
-                if (signedIn) {
-                    navigate(NavDashboard);
-                }
-            })
-            .catch((error) => {
-                setError(error);
-            });
-    }, []);
+    // useEffect(() => {
+    //     SignedIn()
+    //         .then((signedIn) => {
+    //             if (signedIn) {
+    //                 navigate(NavDashboard);
+    //             }
+    //         })
+    //         .catch((error) => {
+    //             setError(error);
+    //         });
+    // }, []);
 
     useEffect(() => {
         if (signingIn) {
