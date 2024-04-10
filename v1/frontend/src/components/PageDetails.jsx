@@ -96,11 +96,13 @@ function PageDetails(props) {
 
         EventsOn('PageActivity', (event) => {
             setActivity(event);
-            setActive(true);
-            if (event.livestreams.length > 0) {
-                setLive(true);
-            } else {
-                setLive(false);
+            if (event !== null) {
+                setActive(true);
+                if (event.livestreams.length > 0) {
+                    setLive(true);
+                } else {
+                    setLive(false);
+                }
             }
         });
 

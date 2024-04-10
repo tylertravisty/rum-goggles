@@ -1,16 +1,18 @@
 # Doing
 
-Add option to delete API key for accounts?
+Next steps:
+- delete page needs to handle new architecture
+- activatePage: verify defer page.activeMu.Unlock does not conflict with display function
 
-First sign in screen: use different function than Login used by dashboard page?
-- Dashboard login function emits events that first sign in screen may not need
+On API errors
+- include backoff multiple, if exceeded then stop API
+
+Add option to delete API key for accounts?
 
 Add better styles/icon to account details menu
 
-Loading screen replaces signin at /
-SignIn moves to /signin
-Check for accounts, if accounts -> dashboard, else -> signin
-Also check for new updates and tell user
+Start screen:
+- check for new updates and tell user
 
 Trigger on event from API vs. trigger on event from chat
 - Chat bot trigger on follow requires API key

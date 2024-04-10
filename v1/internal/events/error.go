@@ -1,8 +1,8 @@
-package api
+package events
 
 import "fmt"
 
-const pkgName = "api"
+const pkgName = "events"
 
 func pkgErr(prefix string, err error) error {
 	pkgErr := pkgName
