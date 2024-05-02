@@ -40,10 +40,13 @@ type Page struct {
 	name         string
 }
 
+func (p *Page) staticLiveStreamUrl() string {
+	return fmt.Sprintf("https://rumble.com%s/live", p.name)
+}
+
 // App struct
 type App struct {
-	//apiS         *ApiService
-	cancelCtrl   context.CancelFunc
+	cancelProc   context.CancelFunc
 	clients      map[string]*rumblelivestreamlib.Client
 	clientsMu    sync.Mutex
 	displaying   string
@@ -70,8 +73,6 @@ func NewApp() *App {
 		log.Fatal("error initializing log: ", err)
 	}
 
-	//app.apiS = NewApiService(app.logError, app.logInfo)
-
 	return app
 }
 
@@ -94,22 +95,20 @@ func (a *App) log() error {
 // so we can call the runtime methods
 func (a *App) startup(wails context.Context) {
 	a.wails = wails
-
-	//a.apiS.Startup(a.apiS.ch)
-
-	// ctx, cancel := context.WithCancel(context.Background())
-	// a.cancelCtrl = cancel
-
-	// go a.handle(ctx)
 }
 
-func (a *App) handle(ctx context.Context) {
+func (a *App) process(ctx context.Context) {
 	for {
 		select {
 		case apiE := <-a.producers.ApiP.Ch:
-			err := a.handleApi(apiE)
+			err := a.processApi(apiE)
 			if err != nil {
 				a.logError.Println("error handling API event:", err)
+			}
+		case chatE := <-a.producers.ChatP.Ch:
+			err := a.processChat(chatE)
+			if err != nil {
+				a.logError.Println("error handling chat event:", err)
 			}
 		case <-ctx.Done():
 			return
@@ -117,7 +116,7 @@ func (a *App) handle(ctx context.Context) {
 	}
 }
 
-func (a *App) handleApi(event events.Api) error {
+func (a *App) processApi(event events.Api) error {
 	if event.Name == "" {
 		return fmt.Errorf("event name is empty")
 	}
@@ -134,7 +133,7 @@ func (a *App) handleApi(event events.Api) error {
 	}
 
 	page.apiSt.activeMu.Lock()
-	page.apiSt.active = event.Stop
+	page.apiSt.active = !event.Stop
 	page.apiSt.activeMu.Unlock()
 
 	if event.Stop {
@@ -158,21 +157,17 @@ func (a *App) handleApi(event events.Api) error {
 	return nil
 }
 
-func (a *App) shutdown(ctx context.Context) {
-	// if a.apiS != nil && a.apiS.Api != nil {
-	// 	err := a.apiS.Shutdown()
-	// 	if err != nil {
-	// 		a.logError.Println("error shutting down api:", err)
-	// 	}
+func (a *App) processChat(event events.Chat) error {
+	return nil
+}
 
-	// 	close(a.apiS.ch)
-	// }
+func (a *App) shutdown(ctx context.Context) {
 	err := a.producers.Shutdown()
 	if err != nil {
 		a.logError.Println("error closing event producers:", err)
 	}
 
-	a.cancelCtrl()
+	a.cancelProc()
 
 	if a.services != nil {
 		err := a.services.Close()
@@ -223,8 +218,8 @@ func (a *App) Start() (bool, error) {
 	// runtime.EventsEmit(a.ctx, "StartupMessage", "Checking for updates complete.")
 
 	ctx, cancel := context.WithCancel(context.Background())
-	a.cancelCtrl = cancel
-	go a.handle(ctx)
+	a.cancelProc = cancel
+	go a.process(ctx)
 
 	signin := true
 	if count > 0 {
@@ -238,6 +233,7 @@ func (a *App) initProducers() error {
 	producers, err := events.NewProducers(
 		events.WithLoggers(a.logError, a.logInfo),
 		events.WithApiProducer(),
+		events.WithChatProducer(),
 	)
 	if err != nil {
 		return fmt.Errorf("error initializing producers: %v", err)
@@ -264,6 +260,7 @@ func (a *App) initServices() error {
 		models.WithAccountService(),
 		models.WithChannelService(),
 		models.WithAccountChannelService(),
+		models.WithChatbotService(),
 	)
 	if err != nil {
 		return fmt.Errorf("error initializing services: %v", err)
@@ -310,7 +307,9 @@ func (a *App) verifyAccounts() (int, error) {
 			} else {
 				account.Cookies = nil
 				err = a.services.AccountS.Update(&account)
-				fmt.Errorf("error updating account: %v", err)
+				if err != nil {
+					return -1, fmt.Errorf("error updating account: %v", err)
+				}
 			}
 		}
 	}
@@ -319,7 +318,7 @@ func (a *App) verifyAccounts() (int, error) {
 }
 
 func (a *App) AddPage(apiKey string) error {
-	client := rumblelivestreamlib.Client{StreamKey: apiKey}
+	client := rumblelivestreamlib.Client{ApiKey: apiKey}
 	resp, err := client.Request()
 	if err != nil {
 		a.logError.Println("error executing api request:", err)
@@ -346,6 +345,13 @@ func (a *App) AddPage(apiKey string) error {
 			return fmt.Errorf("Error adding channel. Try again.")
 		}
 	}
+
+	list, err := a.accountList()
+	if err != nil {
+		a.logError.Println("error getting account list:", err)
+		return fmt.Errorf("Error logging in. Try again.")
+	}
+	runtime.EventsEmit(a.wails, "PageSideBarAccounts", list)
 
 	return nil
 }
@@ -833,7 +839,6 @@ func (a *App) DeleteAccount(id int64) error {
 		a.logError.Println("error getting account list:", err)
 		return fmt.Errorf("Error deleting account. Try again.")
 	}
-
 	runtime.EventsEmit(a.wails, "PageSideBarAccounts", list)
 
 	return nil
@@ -876,7 +881,6 @@ func (a *App) DeleteChannel(id int64) error {
 		a.logError.Println("error getting account list:", err)
 		return fmt.Errorf("Error deleting channel. Try again.")
 	}
-
 	runtime.EventsEmit(a.wails, "PageSideBarAccounts", list)
 
 	return nil
@@ -958,7 +962,6 @@ func (a *App) PageStatus(name string) {
 	active := false
 	isLive := false
 
-	// resp := a.api.Response(name)
 	a.pagesMu.Lock()
 	defer a.pagesMu.Unlock()
 	page, exists := a.pages[name]
@@ -1002,7 +1005,7 @@ func (a *App) UpdateAccountApi(id int64, apiKey string) error {
 		}
 	}
 
-	client := rumblelivestreamlib.Client{StreamKey: apiKey}
+	client := rumblelivestreamlib.Client{ApiKey: apiKey}
 	resp, err := client.Request()
 	if err != nil {
 		a.logError.Println("error executing api request:", err)
@@ -1047,7 +1050,7 @@ func (a *App) UpdateChannelApi(id int64, apiKey string) error {
 		}
 	}
 
-	client := rumblelivestreamlib.Client{StreamKey: apiKey}
+	client := rumblelivestreamlib.Client{ApiKey: apiKey}
 	resp, err := client.Request()
 	if err != nil {
 		a.logError.Println("error executing api request:", err)
@@ -1066,4 +1069,194 @@ func (a *App) UpdateChannelApi(id int64, apiKey string) error {
 	}
 
 	return nil
+}
+
+func (a *App) DeleteChatbot(chatbot *models.Chatbot) error {
+	if chatbot == nil || chatbot.ID == nil {
+		return fmt.Errorf("Invalid chatbot. Try again.")
+	}
+
+	cb, err := a.services.ChatbotS.ByID(*chatbot.ID)
+	if err != nil {
+		a.logError.Println("error getting chatbot by ID:", err)
+		return fmt.Errorf("Error deleting chatbot. Try again.")
+	}
+	if cb == nil {
+		return fmt.Errorf("Chatbot does not exist.")
+	}
+
+	err = a.services.ChatbotS.Delete(chatbot)
+	if err != nil {
+		a.logError.Println("error deleting chatbot:", err)
+		return fmt.Errorf("Error deleting chatbot. Try again.")
+	}
+
+	list, err := a.chatbotList()
+	if err != nil {
+		a.logError.Println("error getting chatbot list:", err)
+		return fmt.Errorf("Error deleting chatbot. Try again.")
+	}
+	runtime.EventsEmit(a.wails, "ChatbotList", list)
+
+	return nil
+}
+
+func (a *App) NewChatbot(chatbot *models.Chatbot) error {
+	if chatbot == nil || chatbot.Name == nil {
+		return fmt.Errorf("Invalid chatbot. Try again.")
+	}
+
+	cb, err := a.services.ChatbotS.ByName(*chatbot.Name)
+	if err != nil {
+		a.logError.Println("error getting chatbot by name:", err)
+		return fmt.Errorf("Error creating chatbot. Try again.")
+	}
+	if cb != nil {
+		return fmt.Errorf("Chatbot name already exists.")
+	}
+
+	_, err = a.services.ChatbotS.Create(chatbot)
+	if err != nil {
+		a.logError.Println("error creating chatbot:", err)
+		return fmt.Errorf("Error creating chatbot. Try again.")
+	}
+
+	list, err := a.chatbotList()
+	if err != nil {
+		a.logError.Println("error getting chatbot list:", err)
+		return fmt.Errorf("Error creating chatbot. Try again.")
+	}
+	runtime.EventsEmit(a.wails, "ChatbotList", list)
+
+	return nil
+}
+
+func (a *App) UpdateChatbot(chatbot *models.Chatbot) error {
+	if chatbot == nil || chatbot.ID == nil || chatbot.Name == nil {
+		return fmt.Errorf("Invalid chatbot. Try again.")
+	}
+
+	cb, err := a.services.ChatbotS.ByID(*chatbot.ID)
+	if err != nil {
+		a.logError.Println("error getting chatbot by ID:", err)
+		return fmt.Errorf("Error updating chatbot. Try again.")
+	}
+	if cb == nil {
+		return fmt.Errorf("Chatbot does not exist.")
+	}
+
+	cbByName, err := a.services.ChatbotS.ByName(*chatbot.Name)
+	if err != nil {
+		a.logError.Println("error getting chatbot by Name:", err)
+		return fmt.Errorf("Error updating chatbot. Try again.")
+	}
+	if cbByName != nil && *cbByName.ID != *cb.ID {
+		return fmt.Errorf("Chatbot name already exists.")
+	}
+
+	err = a.services.ChatbotS.Update(chatbot)
+	if err != nil {
+		a.logError.Println("error updating chatbot:", err)
+		return fmt.Errorf("Error updating chatbot. Try again.")
+	}
+
+	list, err := a.chatbotList()
+	if err != nil {
+		a.logError.Println("error getting chatbot list:", err)
+		return fmt.Errorf("Error updating chatbot. Try again.")
+	}
+	runtime.EventsEmit(a.wails, "ChatbotList", list)
+
+	return nil
+}
+
+func (a *App) ChatbotList() ([]models.Chatbot, error) {
+	list, err := a.chatbotList()
+	if err != nil {
+		a.logError.Println("error getting chatbot list:", err)
+		return nil, fmt.Errorf("Error retrieving chatbots. Try restarting.")
+	}
+
+	return list, nil
+}
+
+func (a *App) chatbotList() ([]models.Chatbot, error) {
+	list, err := a.services.ChatbotS.All()
+	if err != nil {
+		return nil, fmt.Errorf("error querying all chatbots: %v", err)
+	}
+
+	return list, err
+}
+
+type ChatbotRule struct {
+	Message *ChatbotRuleMessage `json:"message"`
+	SendAs  *ChatbotRuleSender  `json:"send_as"`
+	Trigger *ChatbotRuleTrigger `json:"trigger"`
+}
+
+type ChatbotRuleMessage struct {
+	FromFile *ChatbotRuleMessageFile `json:"from_file"`
+	FromText string                  `json:"from_text"`
+}
+
+type ChatbotRuleMessageFile struct {
+	Filepath   string `json:"filepath"`
+	RandomRead bool   `json:"random_read"`
+}
+
+type ChatbotRuleSender struct {
+	Username  string `json:"username"`
+	ChannelID *int   `json:"channel_id"`
+}
+
+type ChatbotRuleTrigger struct {
+	OnCommand *ChatbotRuleTriggerCommand `json:"on_command"`
+	OnEvent   *ChatbotRuleTriggerEvent   `json:"on_event"`
+	OnTimer   *time.Duration             `json:"on_timer"`
+}
+
+type ChatbotRuleTriggerCommand struct {
+	Command  string                                `json:"command"`
+	Restrict *ChatbotRuleTriggerCommandRestriction `json:"restrict"`
+	Timeout  time.Duration                         `json:"timeout"`
+}
+
+type ChatbotRuleTriggerCommandRestriction struct {
+	Bypass       *ChatbotRuleTriggerCommandRestrictionBypass `json:"bypass"`
+	ToAdmin      bool                                        `json:"to_admin"`
+	ToFollower   bool                                        `json:"to_follower"`
+	ToMod        bool                                        `json:"to_mod"`
+	ToStreamer   bool                                        `json:"to_streamer"`
+	ToSubscriber bool                                        `json:"to_subscriber"`
+	ToRant       int                                         `json:"to_rant"`
+}
+
+type ChatbotRuleTriggerCommandRestrictionBypass struct {
+	IfAdmin    bool `json:"if_admin"`
+	IfMod      bool `json:"if_mod"`
+	IfStreamer bool `json:"if_streamer"`
+}
+
+type ChatbotRuleTriggerEvent struct {
+	OnFollow    bool `json:"on_follow"`
+	OnSubscribe bool `json:"on_subscribe"`
+	OnRaid      bool `json:"on_raid"`
+	OnRant      int  `json:"on_rant"`
+}
+
+func (a *App) OpenFileDialog() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		a.logError.Println("error getting home directory:", err)
+		return "", fmt.Errorf("Error opening file explorer. Try again.")
+	}
+
+	filepath, err := runtime.OpenFileDialog(a.wails, runtime.OpenDialogOptions{DefaultDirectory: home})
+	if err != nil {
+		a.logError.Println("error opening file dialog:", err)
+		return "", fmt.Errorf("Error opening file explorer. Try again.")
+	}
+
+	return filepath, err
 }

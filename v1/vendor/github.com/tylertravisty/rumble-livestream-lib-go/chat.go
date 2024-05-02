@@ -7,6 +7,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,13 +15,15 @@ import (
 
 	"github.com/r3labs/sse/v2"
 	"github.com/tylertravisty/go-utils/random"
+	"golang.org/x/net/html"
 	"gopkg.in/cenkalti/backoff.v1"
 )
 
 type ChatInfo struct {
-	UrlPrefix string
-	ChatID    string
 	ChannelID int
+	ChatID    string
+	Page      string
+	UrlPrefix string
 }
 
 func (ci *ChatInfo) MessageUrl() string {
@@ -31,33 +34,37 @@ func (ci *ChatInfo) StreamUrl() string {
 	return fmt.Sprintf("%s/chat/%s/stream", ci.UrlPrefix, ci.ChatID)
 }
 
-func (c *Client) ChatInfo() error {
-	ci, err := c.getChatInfo()
-	if err != nil {
-		return pkgErr("error getting chat info", err)
+func (c *Client) ChatInfo(reload bool) (*ChatInfo, error) {
+	var ci *ChatInfo
+	var err error
+
+	if c.chatInfo == nil || reload {
+		ci, err = c.getChatInfo()
+		if err != nil {
+			return nil, pkgErr("error getting chat info", err)
+		}
 	}
 
 	c.chatInfo = ci
-	return nil
+	return ci, nil
 }
 
 func (c *Client) getChatInfo() (*ChatInfo, error) {
-	if c.StreamUrl == "" {
+	if c.LiveStreamUrl == "" {
 		return nil, fmt.Errorf("stream url is empty")
 	}
 
-	resp, err := c.getWebpage(c.StreamUrl)
+	resp, err := c.getWebpage(c.LiveStreamUrl)
 	if err != nil {
 		return nil, fmt.Errorf("error getting stream webpage: %v", err)
 	}
 	defer resp.Body.Close()
 
+	var chatInfo *ChatInfo
+	var page string
 	r := bufio.NewReader(resp.Body)
-	//line, _, err := r.ReadLine()
 	lineS, err := r.ReadString('\n')
-	//var lineS string
 	for err == nil {
-		//lineS = string(line)
 		if strings.Contains(lineS, "RumbleChat(") {
 			start := strings.Index(lineS, "RumbleChat(") + len("RumbleChat(")
 			if start == -1 {
@@ -81,16 +88,33 @@ func (c *Client) getChatInfo() (*ChatInfo, error) {
 			if err != nil {
 				return nil, fmt.Errorf("error converting channel ID argument string to int: %v", err)
 			}
-			return &ChatInfo{info[0], info[1], channelID}, nil
+			chatInfo = &ChatInfo{ChannelID: channelID, ChatID: info[1], UrlPrefix: info[0]}
+		} else if strings.Contains(lineS, "media-by--a") && strings.Contains(lineS, "author") {
+			r := strings.NewReader(lineS)
+			node, err := html.Parse(r)
+			if err != nil {
+				return nil, fmt.Errorf("error parsing html tag with page name: %v", err)
+			}
+			if node.FirstChild != nil && node.FirstChild.LastChild != nil && node.FirstChild.LastChild.FirstChild != nil {
+				for _, attr := range node.FirstChild.LastChild.FirstChild.Attr {
+					if attr.Key == "href" {
+						page = attr.Val
+					}
+				}
+			}
 		}
-		//line, _, err = r.ReadLine()
+
 		lineS, err = r.ReadString('\n')
 	}
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return nil, fmt.Errorf("error reading line from stream webpage: %v", err)
 	}
+	if chatInfo == nil {
+		return nil, fmt.Errorf("did not find RumbleChat function call")
+	}
 
-	return nil, fmt.Errorf("did not find RumbleChat function call")
+	chatInfo.Page = page
+	return chatInfo, nil
 }
 
 type ChatMessage struct {
@@ -118,20 +142,17 @@ type ChatResponse struct {
 	Errors []Error `json:"errors"`
 }
 
-func (c *Client) Chat(asChannel bool, message string) error {
+func (c *Client) Chat(message string, channelID *int) error {
 	if c.httpClient == nil {
 		return pkgErr("", fmt.Errorf("http client is nil"))
 	}
 
-	// chatInfo, err := c.streamChatInfo()
-	// if err != nil {
-	// 	return pkgErr("error getting stream chat info", err)
-	// }
 	if c.chatInfo == nil {
-		err := c.ChatInfo()
+		ci, err := c.getChatInfo()
 		if err != nil {
-			return err
+			return pkgErr("error getting chat info", err)
 		}
+		c.chatInfo = ci
 	}
 
 	requestID, err := random.String(32)
@@ -145,12 +166,12 @@ func (c *Client) Chat(asChannel bool, message string) error {
 				Text: message,
 			},
 			Rant:      nil,
-			ChannelID: nil,
+			ChannelID: channelID,
 		},
 	}
-	if asChannel {
-		body.Data.ChannelID = &c.chatInfo.ChannelID
-	}
+	// if asChannel {
+	// 	body.Data.ChannelID = &c.chatInfo.ChannelID
+	// }
 
 	bodyB, err := json.Marshal(body)
 	if err != nil {
@@ -260,6 +281,14 @@ func (c *Client) StartChatStream(handle func(cv ChatView), handleError func(err 
 		return pkgErr("", fmt.Errorf("chat stream already started"))
 	}
 	sseEvent := make(chan *sse.Event)
+
+	if c.chatInfo == nil {
+		ci, err := c.getChatInfo()
+		if err != nil {
+			return pkgErr("error getting chat info", err)
+		}
+		c.chatInfo = ci
+	}
 	sseCl := sse.NewClient(c.chatInfo.StreamUrl())
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	sseCl.ReconnectStrategy = backoff.WithContext(

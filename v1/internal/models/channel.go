@@ -337,7 +337,7 @@ type channelValFunc func(*Channel) error
 
 func runChannelValFuncs(c *Channel, fns ...channelValFunc) error {
 	if c == nil {
-		return fmt.Errorf("channel cannot be nil")
+		return fmt.Errorf("channel is nil")
 	}
 
 	for _, fn := range fns {

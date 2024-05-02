@@ -24,7 +24,7 @@ function PageSideBar(props) {
     const [accounts, setAccounts] = useState({});
     const [error, setError] = useState('');
     const [addOpen, setAddOpen] = useState(false);
-    const [refresh, setRefresh] = useState(false);
+    // const [refresh, setRefresh] = useState(false);
     const [scrollY, setScrollY] = useState(0);
 
     useEffect(() => {
@@ -41,7 +41,7 @@ function PageSideBar(props) {
             .catch((error) => {
                 setError(error);
             });
-    }, [refresh]);
+    }, []);
 
     const sortAccounts = () => {
         let keys = Object.keys(accounts);
@@ -354,7 +354,7 @@ function ModalAdd(props) {
                 .then(() => {
                     reset();
                     props.onClose();
-                    props.onRefresh();
+                    //props.onRefresh();
                 })
                 .catch((error) => {
                     setAddAccountLoading(false);
@@ -369,7 +369,7 @@ function ModalAdd(props) {
                 .then(() => {
                     reset();
                     props.onClose();
-                    props.onRefresh();
+                    //props.onRefresh();
                 })
                 .catch((error) => {
                     setAddChannelLoading(false);

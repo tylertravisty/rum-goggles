@@ -4,13 +4,14 @@ import { CircleGreenBackground, Heart } from '../assets';
 import PageDetails from '../components/PageDetails';
 import PageSideBar from '../components/PageSideBar';
 import './Dashboard.css';
+import ChatBot from '../components/ChatBot';
 
 function Dashboard() {
     return (
         <div className='dashboard'>
             <PageSideBar />
             <PageDetails />
-            <div style={{ backgroundColor: '#344453', width: '100%', height: '100%' }}></div>
+            <ChatBot />
         </div>
     );
 }

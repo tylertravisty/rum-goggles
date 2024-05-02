@@ -9,6 +9,7 @@ type Producers struct {
 	logError *log.Logger
 	logInfo  *log.Logger
 	ApiP     *ApiProducer
+	ChatP    *ChatProducer
 }
 
 func (p *Producers) Startup() error {
@@ -57,6 +58,14 @@ func WithLoggers(logError *log.Logger, logInfo *log.Logger) ProducersInit {
 func WithApiProducer() ProducersInit {
 	return func(p *Producers) error {
 		p.ApiP = NewApiProducer(p.logError, p.logInfo)
+
+		return nil
+	}
+}
+
+func WithChatProducer() ProducersInit {
+	return func(p *Producers) error {
+		p.ChatP = NewChatProducer(p.logError, p.logInfo)
 
 		return nil
 	}

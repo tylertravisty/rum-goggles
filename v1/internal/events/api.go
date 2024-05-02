@@ -74,6 +74,7 @@ func (ap *ApiProducer) Shutdown() error {
 		timer := time.NewTimer(3 * time.Second)
 		select {
 		case <-ap.closeCh:
+			timer.Stop()
 			close(ap.Ch)
 		case <-timer.C:
 			return pkgErr("", fmt.Errorf("not all producers were stopped"))
@@ -128,7 +129,7 @@ func (ap *ApiProducer) Stop(name string) error {
 }
 
 func (ap *ApiProducer) run(ctx context.Context, producer *apiProducer) {
-	client := &rumblelivestreamlib.Client{StreamKey: producer.url}
+	client := &rumblelivestreamlib.Client{ApiKey: producer.url}
 	for {
 		resp, err := apiQuery(client)
 		if err != nil {

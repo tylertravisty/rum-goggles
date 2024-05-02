@@ -1,8 +1,17 @@
 # Doing
 
+
+
 Next steps:
+- add option to delete bot rules
 - delete page needs to handle new architecture
+    - app.producers.Active(*name) instead of app.producers.ApiP.Active(*name)
+    - app.producers.Stop(*name)
 - activatePage: verify defer page.activeMu.Unlock does not conflict with display function
+
+For Dashboard page,
+- Api or chat producer could error, need to be able to start/restart both handlers on error
+- Show user error if api or chat stop/error
 
 On API errors
 - include backoff multiple, if exceeded then stop API

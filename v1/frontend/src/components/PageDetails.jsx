@@ -295,6 +295,7 @@ function PageDetails(props) {
         <>
             {openLogin && (
                 <Modal
+                    backgroundClose={true}
                     cancelButton={'Cancel'}
                     onCancel={closeLogin}
                     onClose={closeLogin}
@@ -345,6 +346,7 @@ function PageDetails(props) {
             )}
             {openDelete && (
                 <Modal
+                    backgroundClose={true}
                     cancelButton={'Cancel'}
                     onCancel={resetDelete}
                     onClose={resetDelete}
@@ -384,6 +386,7 @@ function PageDetails(props) {
             )}
             {openApi && (
                 <Modal
+                    backgroundClose={true}
                     cancelButton={'Cancel'}
                     onCancel={closeEditApi}
                     onClose={closeEditApi}

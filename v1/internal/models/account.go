@@ -325,7 +325,7 @@ type accountValFunc func(*Account) error
 
 func runAccountValFuncs(a *Account, fns ...accountValFunc) error {
 	if a == nil {
-		return fmt.Errorf("account cannot be nil")
+		return fmt.Errorf("account is nil")
 	}
 
 	for _, fn := range fns {

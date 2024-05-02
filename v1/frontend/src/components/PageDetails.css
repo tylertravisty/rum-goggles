@@ -192,7 +192,7 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: row;
-    /* min-height: 80px; */
+    min-height: 55px;
     justify-content: space-between;
     padding: 10px 20px;
     width: 100%;

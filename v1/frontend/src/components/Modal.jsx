@@ -5,7 +5,7 @@ export function Modal(props) {
     return (
         <div
             className='modal-background'
-            onClick={props.onClose}
+            onClick={props.backgroundClose && props.onClose}
             style={{ zIndex: props.show ? 8 : -8 }}
         >
             <div

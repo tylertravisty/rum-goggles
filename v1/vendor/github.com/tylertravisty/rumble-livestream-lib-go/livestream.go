@@ -95,7 +95,7 @@ type LivestreamResponse struct {
 
 func (c *Client) Request() (*LivestreamResponse, error) {
 	hcl := http.Client{Timeout: 30 * time.Second}
-	resp, err := hcl.Get(c.StreamKey)
+	resp, err := hcl.Get(c.ApiKey)
 	if err != nil {
 		return nil, pkgErr("http Get request returned error", err)
 	}

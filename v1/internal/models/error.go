@@ -13,6 +13,12 @@ const (
 	ErrChannelInvalidCID       ValidatorError = "invalid channel CID"
 	ErrChannelInvalidID        ValidatorError = "invalid channel ID"
 	ErrChannelInvalidName      ValidatorError = "invalid channel name"
+
+	ErrChatbotInvalidID   ValidatorError = "invalid chatbot id"
+	ErrChatbotInvalidName ValidatorError = "invalid chatbot name"
+
+	ErrChatbotRuleInvalidID   ValidatorError = "invalid chatbot rule id"
+	ErrChatbotRuleInvalidRule ValidatorError = "invalid chatbot rule rule"
 )
 
 func pkgErr(prefix string, err error) error {

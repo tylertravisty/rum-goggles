@@ -23,12 +23,12 @@ const (
 )
 
 type Client struct {
-	httpClient   *http.Client
-	chatInfo     *ChatInfo
-	chatStream   *ChatStream
-	chatStreamMu sync.Mutex
-	StreamKey    string
-	StreamUrl    string
+	httpClient    *http.Client
+	chatInfo      *ChatInfo
+	chatStream    *ChatStream
+	chatStreamMu  sync.Mutex
+	ApiKey        string
+	LiveStreamUrl string
 }
 
 func (c *Client) cookies() ([]*http.Cookie, error) {
@@ -53,9 +53,9 @@ func (c *Client) PrintCookies() error {
 }
 
 type NewClientOptions struct {
-	Cookies   []*http.Cookie `json:"cookies"`
-	StreamKey string         `json:"stream_key"`
-	StreamUrl string         `json:"stream_url"`
+	Cookies       []*http.Cookie `json:"cookies"`
+	ApiKey        string         `json:"stream_key"`
+	LiveStreamUrl string         `json:"stream_url"`
 }
 
 func NewClient(opts NewClientOptions) (*Client, error) {
@@ -64,7 +64,7 @@ func NewClient(opts NewClientOptions) (*Client, error) {
 		return nil, pkgErr("error creating http client", err)
 	}
 
-	return &Client{httpClient: cl, StreamKey: opts.StreamKey, StreamUrl: opts.StreamUrl}, nil
+	return &Client{httpClient: cl, ApiKey: opts.ApiKey, LiveStreamUrl: opts.LiveStreamUrl}, nil
 }
 
 func newHttpClient(cookies []*http.Cookie) (*http.Client, error) {
