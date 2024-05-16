@@ -102,7 +102,7 @@ func (a *App) Config() *config.App {
 }
 
 func (a *App) AddChannel(url string) (*config.App, error) {
-	client := rumblelivestreamlib.Client{StreamKey: url}
+	client := rumblelivestreamlib.Client{ApiKey: url}
 	resp, err := client.Request()
 	if err != nil {
 		a.logError.Println("error executing api request:", err)
@@ -232,7 +232,7 @@ func (a *App) GetChatBot(cid string) (NewChatBotResponse, error) {
 		return NewChatBotResponse{}, fmt.Errorf("Error checking if chat bot is logged in. Try again.")
 	}
 
-	return NewChatBotResponse{loggedIn, a.cb.Cfg.Session.Client.StreamUrl, a.cb.Cfg.Session.Username}, nil
+	return NewChatBotResponse{loggedIn, a.cb.Cfg.Session.Client.LiveStreamUrl, a.cb.Cfg.Session.Username}, nil
 }
 
 func (a *App) NewChatBot(cid string) (NewChatBotResponse, error) {
@@ -252,7 +252,7 @@ func (a *App) NewChatBot(cid string) (NewChatBotResponse, error) {
 		return NewChatBotResponse{}, fmt.Errorf("Channel does not exist.")
 	}
 
-	if channel.ChatBot.Session.Client.StreamUrl == "" {
+	if channel.ChatBot.Session.Client.LiveStreamUrl == "" {
 		return NewChatBotResponse{}, nil
 	}
 
@@ -277,7 +277,7 @@ func (a *App) NewChatBot(cid string) (NewChatBotResponse, error) {
 		}
 	}
 
-	return NewChatBotResponse{loggedIn, channel.ChatBot.Session.Client.StreamUrl, channel.ChatBot.Session.Username}, nil
+	return NewChatBotResponse{loggedIn, channel.ChatBot.Session.Client.LiveStreamUrl, channel.ChatBot.Session.Username}, nil
 }
 
 func (a *App) LoginChatBot(cid string, username string, password string, streamUrl string) error {
@@ -298,7 +298,7 @@ func (a *App) LoginChatBot(cid string, username string, password string, streamU
 		a.logError.Println("channel does not exist:", cid)
 		return fmt.Errorf("Channel does not exist.")
 	}
-	channel.ChatBot.Session.Client.StreamUrl = streamUrl
+	channel.ChatBot.Session.Client.LiveStreamUrl = streamUrl
 
 	var err error
 	a.cb, err = chatbot.NewChatBot(a.ctx, channel.ChatBot, a.logError)
@@ -315,8 +315,8 @@ func (a *App) LoginChatBot(cid string, username string, password string, streamU
 
 	channel.ChatBot.Session = config.ChatBotSession{
 		Client: rumblelivestreamlib.NewClientOptions{
-			Cookies:   cookies,
-			StreamUrl: streamUrl,
+			Cookies:       cookies,
+			LiveStreamUrl: streamUrl,
 		},
 		Username: username,
 	}
@@ -387,7 +387,7 @@ func (a *App) UpdateChatBotUrl(cid string, streamUrl string) error {
 		a.logError.Println("channel does not exist:", cid)
 		return fmt.Errorf("Channel does not exist.")
 	}
-	channel.ChatBot.Session.Client.StreamUrl = streamUrl
+	channel.ChatBot.Session.Client.LiveStreamUrl = streamUrl
 
 	a.cb, err = chatbot.NewChatBot(a.ctx, channel.ChatBot, a.logError)
 	if err != nil {
@@ -402,7 +402,7 @@ func (a *App) UpdateChatBotUrl(cid string, streamUrl string) error {
 		return fmt.Errorf("Error saving session information. Try again.")
 	}
 
-	a.cb.Cfg.Session.Client.StreamUrl = streamUrl
+	a.cb.Cfg.Session.Client.LiveStreamUrl = streamUrl
 
 	err = a.cb.StartChatStream()
 	if err != nil {

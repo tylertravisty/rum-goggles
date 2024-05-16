@@ -81,7 +81,7 @@ func (a *Api) start(ctx context.Context, url string, interval time.Duration) {
 
 func (a *Api) query(url string) {
 	// a.logInfo.Println("QueryAPI")
-	client := rumblelivestreamlib.Client{StreamKey: url}
+	client := rumblelivestreamlib.Client{ApiKey: url}
 	resp, err := client.Request()
 	if err != nil {
 		a.logError.Println("api: error executing client request:", err)

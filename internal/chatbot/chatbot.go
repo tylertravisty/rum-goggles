@@ -24,6 +24,7 @@ type ChatBot struct {
 	ctx                context.Context
 	cancelChatStream   context.CancelFunc
 	cancelChatStreamMu sync.Mutex
+	channelID          int
 	client             *rumblelivestreamlib.Client
 	commands           map[string]chan rumblelivestreamlib.ChatView
 	commandsMu         sync.Mutex
@@ -247,7 +248,14 @@ func (cb *ChatBot) chatCommand(m *message, cv rumblelivestreamlib.ChatView) erro
 	}
 	text := textB.String()
 
-	err = cb.client.Chat(m.asChannel, text)
+	//err := cb.client.Chat(m.asChannel, text)
+	var channelID *int
+	if m.asChannel {
+		cid := cb.channelID
+		channelID = &cid
+	}
+
+	err = cb.client.Chat(text, channelID)
 	if err != nil {
 		return fmt.Errorf("error sending chat: %v", err)
 	}
@@ -270,7 +278,14 @@ func (cb *ChatBot) chat(m *message) error {
 		text = m.textFromFile[n.Int64()]
 	}
 
-	err := cb.client.Chat(m.asChannel, text)
+	//err := cb.client.Chat(m.asChannel, text)
+	var channelID *int
+	if m.asChannel {
+		cid := cb.channelID
+		channelID = &cid
+	}
+
+	err := cb.client.Chat(text, channelID)
 	if err != nil {
 		return fmt.Errorf("error sending chat: %v", err)
 	}
@@ -386,10 +401,11 @@ func (cb *ChatBot) StartChatStream() error {
 		return fmt.Errorf("chatbot: client is nil")
 	}
 
-	err := cb.client.ChatInfo()
+	ci, err := cb.client.ChatInfo(true)
 	if err != nil {
 		return fmt.Errorf("chatbot: error getting chat info: %v", err)
 	}
+	cb.channelID = ci.ChannelID
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cb.cancelChatStreamMu.Lock()
