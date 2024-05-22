@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -17,6 +16,20 @@ import (
 	"github.com/tylertravisty/go-utils/random"
 	"golang.org/x/net/html"
 	"gopkg.in/cenkalti/backoff.v1"
+)
+
+const (
+	ChatBadgeRecurringSubscription = "recurring_subscription"
+	ChatBadgeLocalsSupporter       = "locals_supporter"
+
+	ChatTypeInit           = "init"
+	ChatTypeMessages       = "messages"
+	ChatTypeMuteUsers      = "mute_users"
+	ChatTypeDeleteMessages = "delete_messages"
+	ChatTypeSubscriber     = "locals_supporter"
+	ChatTypeRaiding        = "raid_confirmed"
+	ChatTypePinMessage     = "pin_message"
+	ChatTypeUnpinMessage   = "unpin_message"
 )
 
 type ChatInfo struct {
@@ -74,21 +87,12 @@ func (c *Client) getChatInfo() (*ChatInfo, error) {
 			if end == -1 {
 				return nil, fmt.Errorf("error finding end of chat function in webpage")
 			}
-			argsS := strings.ReplaceAll(lineS[start:start+end], ", ", ",")
-			argsS = strings.Replace(argsS, "[", "\"[", 1)
-			n := strings.LastIndex(argsS, "]")
-			argsS = argsS[:n] + "]\"" + argsS[n+1:]
-			c := csv.NewReader(strings.NewReader(argsS))
-			args, err := c.ReadAll()
-			if err != nil {
-				return nil, fmt.Errorf("error parsing csv: %v", err)
-			}
-			info := args[0]
-			channelID, err := strconv.Atoi(info[5])
+			args := parseRumbleChatArgs(lineS[start : start+end])
+			channelID, err := strconv.Atoi(args[5])
 			if err != nil {
 				return nil, fmt.Errorf("error converting channel ID argument string to int: %v", err)
 			}
-			chatInfo = &ChatInfo{ChannelID: channelID, ChatID: info[1], UrlPrefix: info[0]}
+			chatInfo = &ChatInfo{ChannelID: channelID, ChatID: args[1], UrlPrefix: args[0]}
 		} else if strings.Contains(lineS, "media-by--a") && strings.Contains(lineS, "author") {
 			r := strings.NewReader(lineS)
 			node, err := html.Parse(r)
@@ -115,6 +119,37 @@ func (c *Client) getChatInfo() (*ChatInfo, error) {
 
 	chatInfo.Page = page
 	return chatInfo, nil
+}
+
+func parseRumbleChatArgs(argsS string) []string {
+	open := 0
+
+	args := []string{}
+	arg := []rune{}
+	for _, c := range argsS {
+		if c == ',' && open == 0 {
+			args = append(args, trimRumbleChatArg(string(arg)))
+			arg = []rune{}
+		} else {
+			if c == '[' {
+				open = open + 1
+			}
+			if c == ']' {
+				open = open - 1
+			}
+
+			arg = append(arg, c)
+		}
+	}
+	if len(arg) > 0 {
+		args = append(args, trimRumbleChatArg(string(arg)))
+	}
+
+	return args
+}
+
+func trimRumbleChatArg(arg string) string {
+	return strings.Trim(strings.TrimSpace(arg), "\"")
 }
 
 type ChatMessage struct {
@@ -359,6 +394,7 @@ type ChatView struct {
 	IsFollower  bool
 	Rant        int
 	Text        string
+	Time        time.Time
 	Type        string
 	Username    string
 }
@@ -424,6 +460,11 @@ func parseMessages(eventType string, messages []ChatEventMessage, users map[stri
 			view.Rant = message.Rant.PriceCents
 		}
 		view.Text = message.Text
+		t, err := time.Parse(time.RFC3339, message.Time)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing message time: %v", err)
+		}
+		view.Time = t
 		view.Type = eventType
 		view.Username = user.Username
 

@@ -200,6 +200,7 @@
 .small-modal-message {
     font-family: sans-serif;
     font-size: 18px;
+    overflow-x: scroll;
 }
 
 .small-modal-title {

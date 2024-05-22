@@ -11,16 +11,18 @@ import (
 )
 
 type Chat struct {
-	Message rumblelivestreamlib.ChatView
-	Stop    bool
-	Url     string
+	Livestream string
+	Message    rumblelivestreamlib.ChatView
+	Stop       bool
+	Url        string
 }
 
 type chatProducer struct {
-	cancel   context.CancelFunc
-	cancelMu sync.Mutex
-	client   *rumblelivestreamlib.Client
-	url      string
+	cancel     context.CancelFunc
+	cancelMu   sync.Mutex
+	client     *rumblelivestreamlib.Client
+	livestream string
+	url        string
 }
 
 type chatProducerValFunc func(*chatProducer) error
@@ -82,6 +84,12 @@ func (cp *ChatProducer) Start(liveStreamUrl string) (string, error) {
 		return "", pkgErr("", fmt.Errorf("url is empty"))
 	}
 
+	cp.producersMu.Lock()
+	defer cp.producersMu.Unlock()
+	if producer, active := cp.producers[liveStreamUrl]; active {
+		return producer.url, nil
+	}
+
 	client, err := rumblelivestreamlib.NewClient(rumblelivestreamlib.NewClientOptions{LiveStreamUrl: liveStreamUrl})
 	if err != nil {
 		return "", pkgErr("error creating new rumble client", err)
@@ -93,19 +101,21 @@ func (cp *ChatProducer) Start(liveStreamUrl string) (string, error) {
 	}
 	chatStreamUrl := chatInfo.StreamUrl()
 
-	cp.producersMu.Lock()
-	defer cp.producersMu.Unlock()
-	if _, active := cp.producers[chatStreamUrl]; active {
-		return chatStreamUrl, nil
-	}
+	// cp.producersMu.Lock()
+	// defer cp.producersMu.Unlock()
+	// if _, active := cp.producers[chatStreamUrl]; active {
+	// 	return chatStreamUrl, nil
+	// }
 
 	ctx, cancel := context.WithCancel(context.Background())
 	producer := &chatProducer{
-		cancel: cancel,
-		client: client,
-		url:    chatStreamUrl,
+		cancel:     cancel,
+		client:     client,
+		livestream: liveStreamUrl,
+		url:        chatStreamUrl,
 	}
-	cp.producers[chatStreamUrl] = producer
+	// cp.producers[chatStreamUrl] = producer
+	cp.producers[liveStreamUrl] = producer
 	go cp.run(ctx, producer)
 
 	return chatStreamUrl, nil
@@ -138,6 +148,8 @@ func (cp *ChatProducer) run(ctx context.Context, producer *chatProducer) {
 		return
 	}
 
+	// TODO: handle the case when restarting stream with possibly missing messages
+	// Start new stream, make sure it's running, close old stream
 	for {
 		err = producer.client.StartChatStream(cp.handleChat(producer), cp.handleError(producer))
 		if err != nil {
@@ -154,6 +166,7 @@ func (cp *ChatProducer) run(ctx context.Context, producer *chatProducer) {
 			cp.stop(producer)
 			return
 		case <-timer.C:
+			producer.client.StopChatStream()
 		}
 	}
 }
@@ -164,7 +177,7 @@ func (cp *ChatProducer) handleChat(p *chatProducer) func(cv rumblelivestreamlib.
 			return
 		}
 
-		cp.Ch <- Chat{Message: cv, Url: p.url}
+		cp.Ch <- Chat{Livestream: p.livestream, Message: cv, Url: p.url}
 	}
 }
 
@@ -184,7 +197,7 @@ func (cp *ChatProducer) stop(p *chatProducer) {
 		return
 	}
 
-	cp.Ch <- Chat{Stop: true, Url: p.url}
+	cp.Ch <- Chat{Livestream: p.livestream, Stop: true, Url: p.url}
 
 	cp.producersMu.Lock()
 	delete(cp.producers, p.url)

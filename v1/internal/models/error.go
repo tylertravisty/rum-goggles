@@ -17,8 +17,8 @@ const (
 	ErrChatbotInvalidID   ValidatorError = "invalid chatbot id"
 	ErrChatbotInvalidName ValidatorError = "invalid chatbot name"
 
-	ErrChatbotRuleInvalidID   ValidatorError = "invalid chatbot rule id"
-	ErrChatbotRuleInvalidRule ValidatorError = "invalid chatbot rule rule"
+	ErrChatbotRuleInvalidID         ValidatorError = "invalid chatbot rule id"
+	ErrChatbotRuleInvalidParameters ValidatorError = "invalid chatbot rule parameters"
 )
 
 func pkgErr(prefix string, err error) error {

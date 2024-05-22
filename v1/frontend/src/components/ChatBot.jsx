@@ -3,13 +3,32 @@ import { Modal, SmallModal } from './Modal';
 import {
     AccountList,
     ChatbotList,
+    ChatbotRules,
     DeleteChatbot,
+    DeleteChatbotRule,
     NewChatbot,
+    NewChatbotRule,
     OpenFileDialog,
+    RunChatbotRule,
+    RunChatbotRules,
+    StopChatbotRule,
+    StopChatbotRules,
     UpdateChatbot,
+    UpdateChatbotRule,
 } from '../../wailsjs/go/main/App';
-import { EventsOn } from '../../wailsjs/runtime/runtime';
-import { ChevronLeft, ChevronRight, Gear, PlusCircle, Robot } from '../assets';
+import { EventsOff, EventsOn } from '../../wailsjs/runtime/runtime';
+import {
+    ChevronLeft,
+    ChevronRight,
+    Gear,
+    GearWhite,
+    PauseBig,
+    PlayBig,
+    PlayBigGreen,
+    PlusCircle,
+    Robot,
+    StopBigRed,
+} from '../assets';
 import './ChatBot.css';
 
 function ChatBot(props) {
@@ -20,6 +39,7 @@ function ChatBot(props) {
     const [openChatbot, setOpenChatbot] = useState(null);
     const [openNewChatbot, setOpenNewChatbot] = useState(false);
     const [openNewRule, setOpenNewRule] = useState(false);
+    const [chatbotRules, setChatbotRules] = useState([]);
     const [chatbotSettings, setChatbotSettings] = useState(true);
 
     useEffect(() => {
@@ -32,6 +52,10 @@ function ChatBot(props) {
                     }
                 }
             }
+        });
+
+        EventsOn('ChatbotRules', (event) => {
+            setChatbotRules(event);
         });
     }, []);
 
@@ -46,7 +70,14 @@ function ChatBot(props) {
     }, []);
 
     const open = (chatbot) => {
-        setOpenChatbot(chatbot);
+        ChatbotRules(chatbot)
+            .then((response) => {
+                setChatbotRules(response);
+                setOpenChatbot(chatbot);
+            })
+            .catch((error) => {
+                setError(error);
+            });
     };
 
     const closeEdit = () => {
@@ -80,6 +111,22 @@ function ChatBot(props) {
                 setDeleteChatbot(false);
                 setError(err);
             });
+    };
+
+    const deleteChatbotRule = (rule) => {
+        DeleteChatbotRule(rule).catch((error) => setError(error));
+    };
+
+    const startAll = () => {
+        RunChatbotRules(openChatbot.id).catch((error) => {
+            setError(error);
+        });
+    };
+
+    const stopAll = () => {
+        StopChatbotRules(openChatbot.id).catch((error) => {
+            setError(error);
+        });
     };
 
     return (
@@ -135,7 +182,12 @@ function ChatBot(props) {
                 />
             )}
             {openNewRule && (
-                <ModalNewRule onClose={() => setOpenNewRule(false)} show={openNewRule} />
+                <ModalRule
+                    chatbot={openChatbot}
+                    onClose={() => setOpenNewRule(false)}
+                    new={true}
+                    show={openNewRule}
+                />
             )}
             <div className='chatbot'>
                 {openChatbot === null ? (
@@ -158,30 +210,57 @@ function ChatBot(props) {
                         </div>
                     </>
                 ) : (
-                    <div className='chatbot-header'>
-                        <div className='chatbot-header-left'>
-                            <img
-                                className='chatbot-header-icon-back'
-                                onClick={() => setOpenChatbot(null)}
-                                src={ChevronLeft}
-                            />
+                    <>
+                        <div className='chatbot-header'>
+                            <div className='chatbot-header-left'>
+                                <img
+                                    className='chatbot-header-icon-back'
+                                    onClick={() => setOpenChatbot(null)}
+                                    src={ChevronLeft}
+                                />
+                            </div>
+                            <span className='chatbot-header-title'>{openChatbot.name}</span>
+                            <div className='chatbot-header-right'>
+                                <button
+                                    className='chatbot-header-button'
+                                    onClick={() => openEdit(openChatbot)}
+                                >
+                                    <img className='chatbot-header-button-icon' src={Gear} />
+                                </button>
+                                <button
+                                    className='chatbot-header-button'
+                                    onClick={() => setOpenNewRule(true)}
+                                >
+                                    <img className='chatbot-header-button-icon' src={PlusCircle} />
+                                </button>
+                            </div>
                         </div>
-                        <span className='chatbot-header-title'>{openChatbot.name}</span>
-                        <div className='chatbot-header-right'>
-                            <button
-                                className='chatbot-header-button'
-                                onClick={() => openEdit(openChatbot)}
-                            >
-                                <img className='chatbot-header-button-icon' src={Gear} />
-                            </button>
-                            <button
-                                className='chatbot-header-button'
-                                onClick={() => setOpenNewRule(true)}
-                            >
-                                <img className='chatbot-header-button-icon' src={PlusCircle} />
-                            </button>
+                        <div className='chatbot-rule'>
+                            <span className='chatbot-rule-header chatbot-rule-output'>Output</span>
+                            <span className='chatbot-rule-header chatbot-rule-trigger'>
+                                Trigger
+                            </span>
+                            <span className='chatbot-rule-header chatbot-rule-sender'>Sender</span>
+                            <div className='chatbot-rule-buttons'>
+                                <button className='chatbot-rule-button' onClick={startAll}>
+                                    <img className='chatbot-rule-button-icon' src={PlayBigGreen} />
+                                </button>
+                                <button className='chatbot-rule-button' onClick={stopAll}>
+                                    <img className='chatbot-rule-button-icon' src={StopBigRed} />
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                        <div className='chatbot-rules'>
+                            {chatbotRules.map((rule, index) => (
+                                <ChatbotRule
+                                    chatbot={openChatbot}
+                                    deleteRule={deleteChatbotRule}
+                                    rule={rule}
+                                    key={index}
+                                />
+                            ))}
+                        </div>
+                    </>
                 )}
             </div>
         </>
@@ -193,10 +272,145 @@ export default ChatBot;
 function ChatbotListItem(props) {
     return (
         <div className='chatbot-list-item'>
-            <button className='chatbot-list-button' onClick={() => props.onClick(props.chatbot)}>
+            <button
+                className='chatbot-list-item-button'
+                onClick={() => props.onClick(props.chatbot)}
+            >
                 <span className='chatbot-list-item-name'>{props.chatbot.name}</span>
             </button>
         </div>
+    );
+}
+
+function ChatbotRule(props) {
+    const [ruleActive, setRuleActive] = useState(props.rule.running);
+    const updateRuleActive = (active) => {
+        props.rule.running = active;
+        setRuleActive(active);
+    };
+    const [ruleError, setRuleError] = useState('');
+    const [ruleID, setRuleID] = useState(0);
+    const [updateRule, setUpdateRule] = useState(false);
+
+    useEffect(() => {
+        if (ruleID !== props.rule.id) {
+            EventsOff('ChatbotRuleActive-' + props.rule.id);
+            EventsOff('ChatbotRuleError-' + props.rule.id);
+        }
+
+        EventsOn('ChatbotRuleActive-' + props.rule.id, (event) => {
+            updateRuleActive(event);
+        });
+
+        EventsOn('ChatbotRuleError-' + props.rule.id, (event) => {
+            setRuleError(event);
+        });
+
+        setRuleID(props.rule.id);
+    }, [props.rule.id]);
+
+    useEffect(() => {
+        setRuleActive(props.rule.running);
+    }, [props.rule.running]);
+
+    const deleteRule = () => {
+        setUpdateRule(false);
+        props.deleteRule(props.rule);
+    };
+
+    const prettyTimer = (timer) => {
+        let hours = Math.floor(timer / 3600);
+        let minutes = Math.floor(timer / 60 - hours * 60);
+        let seconds = Math.floor(timer - hours * 3600 - minutes * 60);
+
+        return hours + 'h ' + minutes + 'm ' + seconds + 's';
+    };
+
+    const printTrigger = () => {
+        let trigger = props.rule.parameters.trigger;
+
+        switch (true) {
+            case trigger.on_command !== undefined && trigger.on_command !== null:
+                return trigger.on_command.command;
+            case trigger.on_timer !== undefined && trigger.on_timer !== null:
+                return prettyTimer(props.rule.parameters.trigger.on_timer);
+        }
+    };
+
+    const startRule = () => {
+        setRuleActive(true);
+        RunChatbotRule(props.rule)
+            .then(() => {
+                updateRuleActive(true);
+            })
+            .catch((error) => {
+                // TODO: format error in rule with exclamation point indicator
+                // Replace play/pause button with exclamation point
+                // User must clear error before reactivating
+                setRuleActive(false);
+            });
+    };
+
+    const stopRule = () => {
+        let active = ruleActive;
+        setRuleActive(false);
+        StopChatbotRule(props.rule)
+            .then(() => {
+                updateRuleActive(false);
+            })
+            .catch((error) => {
+                setRuleActive(active);
+                // TODO: format error in rule with exclamation point indicator
+                // Replace play/pause button with exclamation point
+                // User must clear error before reactivating
+            });
+    };
+
+    const triggerKey = () => {
+        const trigger = props.rule.parameters.trigger;
+
+        switch (true) {
+            case trigger.on_command !== undefined && trigger.on_command !== null:
+                return 'on_command';
+            case trigger.on_timer !== undefined && trigger.on_timer !== null:
+                return 'on_timer';
+        }
+    };
+
+    return (
+        <>
+            {updateRule && (
+                <ModalRule
+                    chatbot={props.chatbot}
+                    onClose={() => setUpdateRule(false)}
+                    onDelete={deleteRule}
+                    new={false}
+                    rule={JSON.parse(JSON.stringify(props.rule.parameters))}
+                    ruleID={props.rule.id}
+                    show={updateRule}
+                    trigger={triggerKey()}
+                />
+            )}
+            <div className='chatbot-rule'>
+                <span className='chatbot-rule-output'>{props.rule.display}</span>
+                <span className='chatbot-rule-trigger'>{printTrigger()}</span>
+                <span className='chatbot-rule-sender'>{props.rule.parameters.send_as.display}</span>
+                <div className='chatbot-rule-buttons'>
+                    <button
+                        className='chatbot-rule-button'
+                        onClick={ruleActive ? stopRule : startRule}
+                    >
+                        <img
+                            className='chatbot-rule-button-icon'
+                            src={ruleActive ? PauseBig : PlayBig}
+                        />
+                    </button>
+                    <button className='chatbot-rule-button' onClick={() => setUpdateRule(true)}>
+                        <img className='chatbot-rule-button-icon' src={GearWhite} />
+                    </button>
+                </div>
+            </div>
+        </>
     );
 }
 
@@ -314,12 +528,23 @@ function ModalChatbot(props) {
     );
 }
 
-function ModalNewRule(props) {
-    const [back, setBack] = useState([]);
-    const [rule, setRule] = useState({});
-    const [stage, setStage] = useState('trigger');
-    const updateStage = (next, reverse) => {
-        setBack([...back, { stage: stage, reverse: reverse }]);
+function ModalRule(props) {
+    const [back, setBack] = useState(
+        props.new
+            ? []
+            : [
+                  { stage: 'trigger' },
+                  { stage: 'trigger-' + props.trigger },
+                  { stage: 'message' },
+                  { stage: 'sender' },
+              ]
+    );
+    const [edit, setEdit] = useState(props.new ? true : false);
+    const [error, setError] = useState('');
+    const [rule, setRule] = useState(props.new ? {} : props.rule);
+    const [stage, setStage] = useState(props.new ? 'trigger' : 'review');
+    const updateStage = (next) => {
+        setBack([...back, { stage: stage }]);
         setStage(next);
     };
 
@@ -336,12 +561,60 @@ function ModalNewRule(props) {
         setBack(back.slice(0, back.length - 1));
     };
 
-    const submit = () => {};
+    const submit = () => {
+        if (props.new) {
+            submitNew();
+        }
+
+        submitUpdate();
+    };
+
+    const submitNew = () => {
+        let appRule = {
+            chatbot_id: props.chatbot.id,
+            parameters: rule,
+        };
+
+        NewChatbotRule(appRule)
+            .then(() => {
+                props.onClose();
+            })
+            .catch((err) => {
+                setError(err);
+            });
+    };
+
+    const submitUpdate = () => {
+        let appRule = {
+            id: props.ruleID,
+            chatbot_id: props.chatbot.id,
+            parameters: rule,
+        };
+
+        UpdateChatbotRule(appRule)
+            .then(() => {
+                props.onClose();
+            })
+            .catch((err) => {
+                setError(err);
+            });
+    };
 
     return (
         <>
+            {error !== '' && (
+                <SmallModal
+                    onClose={() => setError('')}
+                    show={error !== ''}
+                    style={{ minWidth: '300px', maxWidth: '200px', maxHeight: '200px' }}
+                    title={'Error'}
+                    message={error}
+                    submitButton={'OK'}
+                    onSubmit={() => setError('')}
+                />
+            )}
             {stage === 'trigger' && (
-                <ModalNewRuleTrigger
+                <ModalRuleTrigger
                     onClose={props.onClose}
                     rule={rule}
                     setRule={setRule}
@@ -349,8 +622,18 @@ function ModalNewRule(props) {
                     show={props.show}
                 />
             )}
-            {stage === 'trigger-timer' && (
-                <ModalNewRuleTriggerTimer
+            {stage === 'trigger-on_command' && (
+                <ModalRuleTriggerCommand
+                    onBack={goBack}
+                    onClose={props.onClose}
+                    rule={rule}
+                    setRule={setRule}
+                    setStage={updateStage}
+                    show={props.show}
+                />
+            )}
+            {stage === 'trigger-on_timer' && (
+                <ModalRuleTriggerTimer
                     onBack={goBack}
                     onClose={props.onClose}
                     rule={rule}
@@ -360,7 +643,7 @@ function ModalNewRule(props) {
                 />
             )}
             {stage === 'message' && (
-                <ModalNewRuleMessage
+                <ModalRuleMessage
                     onBack={goBack}
                     onClose={props.onClose}
                     rule={rule}
@@ -370,7 +653,7 @@ function ModalNewRule(props) {
                 />
             )}
             {stage === 'sender' && (
-                <ModalNewRuleSender
+                <ModalRuleSender
                     onBack={goBack}
                     onClose={props.onClose}
                     rule={rule}
@@ -380,29 +663,62 @@ function ModalNewRule(props) {
                 />
             )}
             {stage === 'review' && (
-                <ModalNewRuleReview
+                <ModalRuleReview
+                    edit={edit}
+                    setEdit={setEdit}
+                    new={props.new}
                     onBack={goBack}
                     onClose={props.onClose}
+                    onDelete={props.onDelete}
+                    onSubmit={submit}
                     rule={rule}
                     show={props.show}
-                    onSubmit={submit}
                 />
             )}
         </>
     );
 }
 
-function ModalNewRuleTrigger(props) {
+function ModalRuleTrigger(props) {
     const next = (stage) => {
-        const rule = props.rule;
-        rule.trigger = {};
-        props.setRule(rule);
-        props.setStage(stage, reverse);
+        props.setStage(stage);
     };
 
-    const reverse = (rule) => {
-        rule.trigger = null;
-        return rule;
+    const triggerOnCommand = () => {
+        const rule = props.rule;
+        if (rule.trigger == undefined || rule.trigger == null) {
+            rule.trigger = {};
+        }
+        if (rule.trigger.on_command == undefined || rule.trigger.on_command == null) {
+            rule.trigger.on_command = {};
+        }
+        if (
+            rule.trigger.on_command.restrict == undefined ||
+            rule.trigger.on_command.restrict == null
+        ) {
+            rule.trigger.on_command.restrict = {};
+        }
+
+        rule.trigger.on_event = null;
+        rule.trigger.on_timer = null;
+
+        props.setRule(rule);
+
+        next('trigger-on_command');
+    };
+
+    const triggerOnTimer = () => {
+        const rule = props.rule;
+        if (rule.trigger == undefined || rule.trigger == null) {
+            rule.trigger = {};
+        }
+
+        rule.trigger.on_command = null;
+        rule.trigger.on_event = null;
+
+        props.setRule(rule);
+
+        next('trigger-on_timer');
     };
 
     return (
@@ -414,10 +730,7 @@ function ModalNewRuleTrigger(props) {
             <div className='modal-add-account-channel'>
                 <span className='modal-add-account-channel-title'>Choose Rule Trigger</span>
                 <div className='modal-add-account-channel-body'>
-                    <button
-                        className='modal-add-account-channel-button'
-                        onClick={() => next('trigger-command')}
-                    >
+                    <button className='modal-add-account-channel-button' onClick={triggerOnCommand}>
                         <div className='modal-add-account-channel-button-left'>
                             <span>Command</span>
                         </div>
@@ -426,7 +739,7 @@ function ModalNewRuleTrigger(props) {
                             src={ChevronRight}
                         />
                     </button>
-                    <button
+                    {/* <button
                         className='modal-add-account-channel-button'
                         onClick={() => next('trigger-stream_event')}
                     >
@@ -437,11 +750,8 @@ function ModalNewRuleTrigger(props) {
                             className='modal-add-account-channel-button-right-icon'
                             src={ChevronRight}
                         />
-                    </button>
-                    <button
-                        className='modal-add-account-channel-button'
-                        onClick={() => next('trigger-timer')}
-                    >
+                    </button> */}
+                    <button className='modal-add-account-channel-button' onClick={triggerOnTimer}>
                         <div className='modal-add-account-channel-button-left'>
                             <span>Timer</span>
                         </div>
@@ -457,18 +767,241 @@ function ModalNewRuleTrigger(props) {
     );
 }
 
-function ModalNewRuleTriggerTimer(props) {
-    const [validTimer, setValidTimer] = useState(true);
-    const [timer, setTimer] = useState(
-        props.rule.trigger.on_timer !== undefined && props.rule.trigger.on_timer !== null
-            ? props.rule.trigger.on_timer
+function ModalRuleTriggerCommand(props) {
+    const prependZero = (value) => {
+        if (value < 10) {
+            return '0' + value;
+        }
+
+        return '' + value;
+    };
+
+    const intervalToTimer = (interval) => {
+        let hours = Math.floor(interval / 3600);
+        let minutes = Math.floor(interval / 60 - hours * 60);
+        let seconds = Math.floor(interval - hours * 3600 - minutes * 60);
+
+        if (hours !== 0 || minutes !== 0) {
+            seconds = prependZero(seconds);
+        }
+        if (hours !== 0) {
+            minutes = prependZero(minutes);
+        }
+        if (hours === 0) {
+            hours = '';
+            if (minutes === 0) {
+                minutes = '';
+                if (seconds === 0) {
+                    seconds = '';
+                }
+            }
+        }
+
+        return hours + minutes + seconds;
+    };
+
+    const [validCommand, setValidCommand] = useState('');
+    const [command, setCommand] = useState(
+        props.rule.trigger.on_command.command !== undefined
+            ? props.rule.trigger.on_command.command
+            : ''
+    );
+    const [followersOnly, setFollowersOnly] = useState(
+        props.rule.trigger.on_command.restrict.to_follower !== undefined
+            ? props.rule.trigger.on_command.restrict.to_follower
+            : false
+    );
+    const toggleFollowersOnly = () => {
+        setFollowersOnly(!followersOnly);
+    };
+    const [minRant, setMinRant] = useState(
+        props.rule.trigger.on_command.restrict.to_rant !== undefined
+            ? props.rule.trigger.on_command.restrict.to_rant
+            : 0
+    );
+    const updateMinRant = (e) => {
+        let amount = parseInt(e.target.value);
+        if (isNaN(amount)) {
+            amount = 0;
+        }
+
+        setMinRant(amount);
+    };
+    const [subscribersOnly, setSubscribersOnly] = useState(
+        props.rule.trigger.on_command.restrict.to_subscriber !== undefined
+            ? props.rule.trigger.on_command.restrict.to_subscriber
+            : false
+    );
+    const toggleSubscribersOnly = () => {
+        setSubscribersOnly(!subscribersOnly);
+    };
+    const [timeout, setTimeout] = useState(
+        props.rule.trigger.on_command.timeout !== undefined
+            ? intervalToTimer(props.rule.trigger.on_command.timeout)
             : ''
     );
 
     const back = () => {
+        // const rule = props.rule;
+        // rule.trigger.on_command = null;
+        // props.setRule(rule);
+        props.onBack();
+    };
+
+    const next = () => {
+        if (command === '') {
+            setValidCommand('Enter a valid command');
+            return;
+        }
+        if (timeout === '') {
+            setValidCommand('Enter a valid timeout');
+            return;
+        }
+
         const rule = props.rule;
-        rule.trigger.on_timer = '';
+        rule.trigger.on_command = {
+            command: command,
+            restrict: {
+                to_follower: followersOnly,
+                to_rant: minRant,
+                to_subscriber: subscribersOnly,
+            },
+            timeout: timerValToInterval(timeout),
+        };
         props.setRule(rule);
+        props.setStage('message');
+    };
+
+    const timerValToInterval = (val) => {
+        let prefix = '0'.repeat(6 - val.length);
+        let t = prefix + val;
+
+        let hours = parseInt(t.substring(0, 2));
+        let minutes = parseInt(t.substring(2, 4));
+        let seconds = parseInt(t.substring(4, 6));
+
+        return hours * 3600 + minutes * 60 + seconds;
+    };
+
+    return (
+        <Modal
+            cancelButton={'Back'}
+            onCancel={back}
+            onClose={props.onClose}
+            show={props.show}
+            submitButton={'Next'}
+            onSubmit={next}
+            style={{ height: '400px', minHeight: '300px', width: '360px', minWidth: '360px' }}
+        >
+            <div className='modal-add-account-channel'>
+                <div className='modal-add-account-channel-header'>
+                    <span className='modal-add-account-channel-title'>Set Command</span>
+                    <span className='modal-add-account-channel-subtitle'>
+                        Chat rule will trigger on command.
+                    </span>
+                </div>
+                <div className='modal-add-account-channel-body'>
+                    {validCommand === '' ? (
+                        <span className='chatbot-modal-description'>Enter command</span>
+                    ) : (
+                        <span className='chatbot-modal-description-warning'>{validCommand}</span>
+                    )}
+                    <Command command={command} setCommand={setCommand} />
+                    <div className='chatbot-modal-setting'>
+                        <label className='chatbot-modal-setting-description'>Set Timeout</label>
+                        <Timer timer={timeout} setTimer={setTimeout} />
+                    </div>
+                    <div className='chatbot-modal-setting'>
+                        <label className='chatbot-modal-setting-description'>Followers only</label>
+                        <label className='chatbot-modal-toggle-switch'>
+                            <input
+                                checked={followersOnly}
+                                onChange={toggleFollowersOnly}
+                                type='checkbox'
+                            />
+                            <span className='chatbot-modal-toggle-slider round'></span>
+                        </label>
+                    </div>
+                    <div className='chatbot-modal-setting'>
+                        <label className='chatbot-modal-setting-description'>
+                            Subscribers only
+                        </label>
+                        <label className='chatbot-modal-toggle-switch'>
+                            <input
+                                checked={subscribersOnly}
+                                onChange={toggleSubscribersOnly}
+                                type='checkbox'
+                            />
+                            <span className='chatbot-modal-toggle-slider round'></span>
+                        </label>
+                    </div>
+                    <div className='chatbot-modal-setting'>
+                        <label className='chatbot-modal-setting-description'>
+                            Minimum rant amount
+                        </label>
+                        <div>
+                            <span className='command-rant-amount-symbol'>$</span>
+                            <input
+                                className='command-rant-amount'
+                                onChange={updateMinRant}
+                                placeholder='0'
+                                size='4'
+                                type='text'
+                                value={minRant === 0 ? '' : minRant}
+                            />
+                        </div>
+                    </div>
+                </div>
+                <div style={{ height: '56px' }}></div>
+            </div>
+        </Modal>
+    );
+}
+
+function ModalRuleTriggerTimer(props) {
+    const prependZero = (value) => {
+        if (value < 10) {
+            return '0' + value;
+        }
+
+        return '' + value;
+    };
+
+    const intervalToTimer = (interval) => {
+        let hours = Math.floor(interval / 3600);
+        let minutes = Math.floor(interval / 60 - hours * 60);
+        let seconds = Math.floor(interval - hours * 3600 - minutes * 60);
+
+        if (hours !== 0 || minutes !== 0) {
+            seconds = prependZero(seconds);
+        }
+        if (hours !== 0) {
+            minutes = prependZero(minutes);
+        }
+        if (hours === 0) {
+            hours = '';
+            if (minutes === 0) {
+                minutes = '';
+                if (seconds === 0) {
+                    seconds = '';
+                }
+            }
+        }
+
+        return hours + minutes + seconds;
+    };
+
+    const [validTimer, setValidTimer] = useState(true);
+    const [timer, setTimer] = useState(
+        props.rule.trigger.on_timer !== undefined && props.rule.trigger.on_timer !== null
+            ? intervalToTimer(props.rule.trigger.on_timer)
+            : ''
+    );
+
+    const back = () => {
+        // const rule = props.rule;
+        // rule.trigger.on_timer = '';
+        // props.setRule(rule);
         props.onBack();
     };
 
@@ -479,9 +1012,20 @@ function ModalNewRuleTriggerTimer(props) {
         }
 
         const rule = props.rule;
-        rule.trigger.on_timer = timer;
+        rule.trigger.on_timer = timerValToInterval(timer);
         props.setRule(rule);
-        props.setStage('message', null);
+        props.setStage('message');
+    };
+
+    const timerValToInterval = (val) => {
+        let prefix = '0'.repeat(6 - val.length);
+        let t = prefix + val;
+
+        let hours = parseInt(t.substring(0, 2));
+        let minutes = parseInt(t.substring(2, 4));
+        let seconds = parseInt(t.substring(4, 6));
+
+        return hours * 3600 + minutes * 60 + seconds;
     };
 
     return (
@@ -509,7 +1053,7 @@ function ModalNewRuleTriggerTimer(props) {
                             Enter a valid timer interval.
                         </span>
                     )}
-                    <Timer timer={timer} setTimer={setTimer} />
+                    <Timer timer={timer} setTimer={setTimer} style={{ fontSize: '24px' }} />
                 </div>
                 <div style={{ height: '56px' }}></div>
             </div>
@@ -517,7 +1061,7 @@ function ModalNewRuleTriggerTimer(props) {
     );
 }
 
-function ModalNewRuleMessage(props) {
+function ModalRuleMessage(props) {
     const [error, setError] = useState('');
     const [message, setMessage] = useState(
         props.rule.message !== undefined && props.rule.message !== null ? props.rule.message : {}
@@ -527,9 +1071,9 @@ function ModalNewRuleMessage(props) {
     const [validText, setValidText] = useState(true);
 
     const back = () => {
-        const rule = props.rule;
-        rule.message = null;
-        props.setRule(rule);
+        // const rule = props.rule;
+        // rule.message = null;
+        // props.setRule(rule);
         props.onBack();
     };
 
@@ -549,7 +1093,7 @@ function ModalNewRuleMessage(props) {
         const rule = props.rule;
         rule.message = message;
         props.setRule(rule);
-        props.setStage('sender', null);
+        props.setStage('sender');
     };
 
     const chooseFile = () => {
@@ -573,6 +1117,7 @@ function ModalNewRuleMessage(props) {
             message.from_file = null;
         } else {
             message.from_file = {};
+            message.from_text = '';
         }
 
         setMessage(message);
@@ -604,6 +1149,7 @@ function ModalNewRuleMessage(props) {
     const updateMessageText = (event) => {
         message.from_text = event.target.value;
         setMessage(message);
+        setRefresh(!refresh);
     };
 
     const updateMessageFilepath = (filepath) => {
@@ -707,7 +1253,7 @@ function ModalNewRuleMessage(props) {
     );
 }
 
-function ModalNewRuleSender(props) {
+function ModalRuleSender(props) {
     const [accounts, setAccounts] = useState({});
     const [error, setError] = useState('');
     const [sender, setSender] = useState(
@@ -726,9 +1272,9 @@ function ModalNewRuleSender(props) {
     }, []);
 
     const back = () => {
-        const rule = props.rule;
-        rule.send_as = null;
-        props.setRule(rule);
+        // const rule = props.rule;
+        // rule.send_as = null;
+        // props.setRule(rule);
         props.onBack();
     };
 
@@ -741,7 +1287,7 @@ function ModalNewRuleSender(props) {
         const rule = props.rule;
         rule.send_as = sender;
         props.setRule(rule);
-        props.setStage('review', null);
+        props.setStage('review');
     };
 
     const selectSender = (sender) => {
@@ -816,7 +1362,7 @@ function ModalNewRuleSender(props) {
             >
                 <div className='modal-add-account-channel'>
                     <div className='modal-add-account-channel-header'>
-                        <span className='modal-add-account-channel-title'>Choose sender</span>
+                        <span className='modal-add-account-channel-title'>Choose Sender</span>
                     </div>
                     <div className='modal-add-account-channel-body' style={{ height: '60%' }}>
                         {validSender ? (
@@ -850,7 +1396,13 @@ function ModalNewRuleSender(props) {
     );
 }
 
-function ModalNewRuleReview(props) {
+function ModalRuleReview(props) {
+    const [deleteRule, setDeleteRule] = useState(false);
+    const [edit, setEdit] = useState(props.edit);
+    const updateEdit = (e) => {
+        setEdit(e);
+        props.setEdit(e);
+    };
     const [error, setError] = useState('');
 
     const back = () => {
@@ -861,33 +1413,91 @@ function ModalNewRuleReview(props) {
         props.onSubmit();
     };
 
+    const displayTrigger = () => {
+        switch (true) {
+            case props.rule.trigger.on_timer !== undefined || props.rule.trigger.on_timer !== null:
+                return 'Timer';
+            default:
+                return 'Error';
+        }
+    };
+
+    const confirmDelete = () => {
+        setDeleteRule(false);
+        props.onDelete();
+    };
+
     return (
-        <Modal
-            cancelButton={'Back'}
-            onCancel={back}
-            onClose={props.onClose}
-            show={props.show}
-            submitButton={'Submit'}
-            onSubmit={submit}
-            style={{ height: '480px', minHeight: '480px', width: '360px', minWidth: '360px' }}
-        >
-            <div className='modal-add-account-channel'>
-                <div className='modal-add-account-channel-header'>
-                    <span className='modal-add-account-channel-title'>Review</span>
-                </div>
-                <div className='modal-add-account-channel-body'>
-                    <div className='chatbot-modal-setting'>
-                        <label className='chatbot-modal-setting-description'>Trigger</label>
-                        <label className='chatbot-modal-setting-description'>Timer</label>
+        <>
+            {deleteRule && (
+                <SmallModal
+                    cancelButton={'Cancel'}
+                    onCancel={() => setDeleteRule(false)}
+                    onClose={() => setDeleteRule(false)}
+                    show={deleteRule}
+                    style={{ minWidth: '300px', maxWidth: '200px', maxHeight: '200px' }}
+                    title={'Delete Rule'}
+                    message={'Are you sure you want to delete this rule?'}
+                    submitButton={'OK'}
+                    onSubmit={confirmDelete}
+                />
+            )}
+            <Modal
+                cancelButton={edit ? 'Back' : ''}
+                onCancel={back}
+                onClose={props.onClose}
+                deleteButton={edit ? '' : 'Delete'}
+                deleteActive={true}
+                onDelete={() => setDeleteRule(true)}
+                show={props.show}
+                submitButton={edit ? 'Submit' : 'Edit'}
+                onSubmit={edit ? submit : () => updateEdit(true)}
+                style={{ height: '480px', minHeight: '480px', width: '360px', minWidth: '360px' }}
+            >
+                <div className='modal-add-account-channel'>
+                    <div className='modal-add-account-channel-header'>
+                        <span className='modal-add-account-channel-title'>Review</span>
                     </div>
-                    <div className='chatbot-modal-setting'>
-                        <label className='chatbot-modal-setting-description'>Chat As</label>
-                        <label className='chatbot-modal-setting-description'>tylertravisty</label>
+                    <div className='modal-add-account-channel-body'>
+                        <div className='chatbot-modal-review'>
+                            <pre>{JSON.stringify(props.rule, null, 2)}</pre>
+                        </div>
                     </div>
+                    <div style={{ height: '29px' }}></div>
                 </div>
-                <div style={{ height: '29px' }}></div>
-            </div>
-        </Modal>
+            </Modal>
+        </>
+    );
+}
+
+function Command(props) {
+    const updateCommand = (e) => {
+        let command = e.target.value;
+
+        if (command.length === 1) {
+            if (command !== '!') {
+                command = '!' + command;
+            }
+        }
+        command = command.toLowerCase();
+        let postfix = command.replace('!', '');
+
+        if (postfix !== '' && !/^[a-z0-9]+$/gi.test(postfix)) {
+            return;
+        }
+
+        props.setCommand(command);
+    };
+
+    return (
+        <input
+            className={'command-input'}
+            onInput={updateCommand}
+            placeholder={'!command'}
+            size='8'
+            type='text'
+            value={props.command}
+        />
     );
 }
 
@@ -934,6 +1544,8 @@ function Timer(props) {
     };
 
     const printTimer = () => {
+        // let timer = intervalToTimer(props.timer);
+
         if (props.timer === '') {
             return '00:00:00';
         }
@@ -955,6 +1567,7 @@ function Timer(props) {
             onInput={updateTimer}
             placeholder={printTimer()}
             size='8'
+            style={props.style}
             type='text'
             value={''}
         />

@@ -18,6 +18,7 @@ type Services struct {
 	AccountChannelS AccountChannelService
 	ChannelS        ChannelService
 	ChatbotS        ChatbotService
+	ChatbotRuleS    ChatbotRuleService
 	Database        *sql.DB
 	tables          []table
 }
@@ -112,6 +113,15 @@ func WithChatbotService() ServicesInit {
 	return func(s *Services) error {
 		s.ChatbotS = NewChatbotService(s.Database)
 		s.tables = append(s.tables, table{chatbotTable, s.ChatbotS.AutoMigrate, s.ChatbotS.DestructiveReset})
+
+		return nil
+	}
+}
+
+func WithChatbotRuleService() ServicesInit {
+	return func(s *Services) error {
+		s.ChatbotRuleS = NewChatbotRuleService(s.Database)
+		s.tables = append(s.tables, table{chatbotRuleTable, s.ChatbotRuleS.AutoMigrate, s.ChatbotRuleS.DestructiveReset})
 
 		return nil
 	}

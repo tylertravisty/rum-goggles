@@ -6,18 +6,18 @@ import (
 )
 
 const (
-	chatbotRuleColumns = "id, chatbot_id, name, rule"
+	chatbotRuleColumns = "id, chatbot_id, parameters"
 	chatbotRuleTable   = "chatbot_rule"
 )
 
 type ChatbotRule struct {
-	ID        *int64  `json:"id"`
-	ChatbotID *int64  `json:"chatbot_id"`
-	Rule      *string `json:"rule"`
+	ID         *int64  `json:"id"`
+	ChatbotID  *int64  `json:"chatbot_id"`
+	Parameters *string `json:"parameters"`
 }
 
 func (c *ChatbotRule) values() []any {
-	return []any{c.ID, c.ChatbotID, c.Rule}
+	return []any{c.ID, c.ChatbotID, c.Parameters}
 }
 
 func (c *ChatbotRule) valuesNoID() []any {
@@ -30,26 +30,27 @@ func (c *ChatbotRule) valuesEndID() []any {
 }
 
 type sqlChatbotRule struct {
-	id        sql.NullInt64
-	chatbotID sql.NullInt64
-	rule      sql.NullString
+	id         sql.NullInt64
+	chatbotID  sql.NullInt64
+	parameters sql.NullString
 }
 
 func (sc *sqlChatbotRule) scan(r Row) error {
-	return r.Scan(&sc.id, &sc.chatbotID, &sc.rule)
+	return r.Scan(&sc.id, &sc.chatbotID, &sc.parameters)
 }
 
 func (sc sqlChatbotRule) toChatbotRule() *ChatbotRule {
 	var c ChatbotRule
 	c.ID = toInt64(sc.id)
 	c.ChatbotID = toInt64(sc.chatbotID)
-	c.Rule = toString(sc.rule)
+	c.Parameters = toString(sc.parameters)
 
 	return &c
 }
 
 type ChatbotRuleService interface {
 	AutoMigrate() error
+	ByChatbotID(cid int64) ([]ChatbotRule, error)
 	Create(c *ChatbotRule) (int64, error)
 	Delete(c *ChatbotRule) error
 	DestructiveReset() error
@@ -82,7 +83,7 @@ func (cs *chatbotRuleService) createChatbotRuleTable() error {
 		CREATE TABLE IF NOT EXISTS "%s" (
 			id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 			chatbot_id INTEGER NOT NULL,
-			rule TEXT NOT NULL
+			parameters TEXT NOT NULL,
 			FOREIGN KEY (chatbot_id) REFERENCES "%s" (id)
 		)
 	`, chatbotRuleTable, chatbotTable)
@@ -95,10 +96,42 @@ func (cs *chatbotRuleService) createChatbotRuleTable() error {
 	return nil
 }
 
+func (cs *chatbotRuleService) ByChatbotID(cid int64) ([]ChatbotRule, error) {
+	selectQ := fmt.Sprintf(`
+		SELECT %s
+		FROM "%s"
+		WHERE chatbot_id=?
+	`, chatbotRuleColumns, chatbotRuleTable)
+
+	rows, err := cs.Database.Query(selectQ, cid)
+	if err != nil {
+		return nil, pkgErr("error executing select query", err)
+	}
+	defer rows.Close()
+
+	rules := []ChatbotRule{}
+	for rows.Next() {
+		scr := &sqlChatbotRule{}
+
+		err = scr.scan(rows)
+		if err != nil {
+			return nil, pkgErr("error scanning row", err)
+		}
+
+		rules = append(rules, *scr.toChatbotRule())
+	}
+	err = rows.Err()
+	if err != nil && err != sql.ErrNoRows {
+		return nil, pkgErr("error iterating over rows", err)
+	}
+
+	return rules, nil
+}
+
 func (cs *chatbotRuleService) Create(c *ChatbotRule) (int64, error) {
 	err := runChatbotRuleValFuncs(
 		c,
-		chatbotRuleRequireRule,
+		chatbotRuleRequireParameters,
 	)
 	if err != nil {
 		return -1, pkgErr("invalid chat rule", err)
@@ -169,7 +202,7 @@ func (cs *chatbotRuleService) Update(c *ChatbotRule) error {
 	err := runChatbotRuleValFuncs(
 		c,
 		chatbotRuleRequireID,
-		chatbotRuleRequireRule,
+		chatbotRuleRequireParameters,
 	)
 	if err != nil {
 		return pkgErr("invalid chat rule", err)
@@ -215,9 +248,9 @@ func chatbotRuleRequireID(c *ChatbotRule) error {
 	return nil
 }
 
-func chatbotRuleRequireRule(c *ChatbotRule) error {
-	if c.Rule == nil || *c.Rule == "" {
-		return ErrChatbotRuleInvalidRule
+func chatbotRuleRequireParameters(c *ChatbotRule) error {
+	if c.Parameters == nil || *c.Parameters == "" {
+		return ErrChatbotRuleInvalidParameters
 	}
 
 	return nil

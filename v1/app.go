@@ -7,9 +7,11 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/tylertravisty/rum-goggles/v1/internal/chatbot"
 	"github.com/tylertravisty/rum-goggles/v1/internal/config"
 	"github.com/tylertravisty/rum-goggles/v1/internal/events"
 	"github.com/tylertravisty/rum-goggles/v1/internal/models"
@@ -47,6 +49,7 @@ func (p *Page) staticLiveStreamUrl() string {
 // App struct
 type App struct {
 	cancelProc   context.CancelFunc
+	chatbot      *chatbot.Chatbot
 	clients      map[string]*rumblelivestreamlib.Client
 	clientsMu    sync.Mutex
 	displaying   string
@@ -101,24 +104,34 @@ func (a *App) process(ctx context.Context) {
 	for {
 		select {
 		case apiE := <-a.producers.ApiP.Ch:
-			err := a.processApi(apiE)
-			if err != nil {
-				a.logError.Println("error handling API event:", err)
-			}
+			a.processApi(apiE)
 		case chatE := <-a.producers.ChatP.Ch:
-			err := a.processChat(chatE)
-			if err != nil {
-				a.logError.Println("error handling chat event:", err)
-			}
+			a.processChat(chatE)
 		case <-ctx.Done():
 			return
 		}
 	}
 }
 
-func (a *App) processApi(event events.Api) error {
+type apiProcessor func(event events.Api)
+
+func (a *App) runApiProcessors(event events.Api, procs ...apiProcessor) {
+	for _, proc := range procs {
+		proc(event)
+	}
+}
+
+func (a *App) processApi(event events.Api) {
+	a.runApiProcessors(
+		event,
+		a.pageApiProcessor,
+		a.chatbotApiProcessor,
+	)
+}
+
+func (a *App) pageApiProcessor(event events.Api) {
 	if event.Name == "" {
-		return fmt.Errorf("event name is empty")
+		a.logError.Println("page cannot process API: event name is empty")
 	}
 
 	a.pagesMu.Lock()
@@ -138,7 +151,7 @@ func (a *App) processApi(event events.Api) error {
 
 	if event.Stop {
 		runtime.EventsEmit(a.wails, "ApiActive-"+page.name, false)
-		return nil
+		return
 	}
 
 	runtime.EventsEmit(a.wails, "ApiActive-"+page.name, true)
@@ -153,12 +166,39 @@ func (a *App) processApi(event events.Api) error {
 	page.apiSt.respMu.Unlock()
 
 	a.updatePage(page)
-
-	return nil
 }
 
-func (a *App) processChat(event events.Chat) error {
-	return nil
+type chatProcessor func(event events.Chat)
+
+func (a *App) runChatProcessors(event events.Chat, procs ...chatProcessor) {
+	for _, proc := range procs {
+		proc(event)
+	}
+}
+
+func (a *App) processChat(event events.Chat) {
+	if event.Stop {
+		runtime.EventsEmit(a.wails, "ChatStreamActive-"+event.Url, false)
+		return
+	}
+
+	a.runChatProcessors(
+		event,
+		a.chatbotChatProcessor,
+	)
+}
+
+// TODO: implement this
+func (a *App) chatbotApiProcessor(event events.Api) {
+	return
+}
+
+func (a *App) chatbotChatProcessor(event events.Chat) {
+	if event.Message.Type == rumblelivestreamlib.ChatTypeInit {
+		return
+	}
+
+	a.chatbot.HandleChat(event)
 }
 
 func (a *App) shutdown(ctx context.Context) {
@@ -212,6 +252,14 @@ func (a *App) Start() (bool, error) {
 	}
 	runtime.EventsEmit(a.wails, "StartupMessage", "Initializing event producers complete.")
 
+	runtime.EventsEmit(a.wails, "StartupMessage", "Initializing chat bot...")
+	err = a.initChatbot()
+	if err != nil {
+		a.logError.Println("error initializing chat bot:", err)
+		return false, fmt.Errorf("Error starting Rum Goggles. Try restarting.")
+	}
+	runtime.EventsEmit(a.wails, "StartupMessage", "Initializing chat bot complete.")
+
 	// TODO: check for update - if available, pop up window
 	// runtime.EventsEmit(a.ctx, "StartupMessage", "Checking for updates...")
 	// update, err = a.checkForUpdate()
@@ -227,6 +275,13 @@ func (a *App) Start() (bool, error) {
 	}
 
 	return signin, nil
+}
+
+func (a *App) initChatbot() error {
+	cb := chatbot.New(a.services.AccountS, a.services.ChatbotS, a.logError, a.wails)
+	a.chatbot = cb
+
+	return nil
 }
 
 func (a *App) initProducers() error {
@@ -261,6 +316,7 @@ func (a *App) initServices() error {
 		models.WithChannelService(),
 		models.WithAccountChannelService(),
 		models.WithChatbotService(),
+		models.WithChatbotRuleService(),
 	)
 	if err != nil {
 		return fmt.Errorf("error initializing services: %v", err)
@@ -1076,6 +1132,12 @@ func (a *App) DeleteChatbot(chatbot *models.Chatbot) error {
 		return fmt.Errorf("Invalid chatbot. Try again.")
 	}
 
+	err := a.StopChatbotRules(chatbot.ID)
+	if err != nil {
+		a.logError.Println("error stopping chatbot rules before deleting chatbot")
+		return fmt.Errorf("Error deleting chatbot. Could not stop running rules. Try Again.")
+	}
+
 	cb, err := a.services.ChatbotS.ByID(*chatbot.ID)
 	if err != nil {
 		a.logError.Println("error getting chatbot by ID:", err)
@@ -1083,6 +1145,20 @@ func (a *App) DeleteChatbot(chatbot *models.Chatbot) error {
 	}
 	if cb == nil {
 		return fmt.Errorf("Chatbot does not exist.")
+	}
+
+	rules, err := a.services.ChatbotRuleS.ByChatbotID(*chatbot.ID)
+	if err != nil {
+		a.logError.Println("error getting chatbot rules by chatbot ID:", err)
+		return fmt.Errorf("Error deleting chatbot. Try again.")
+	}
+
+	for _, rule := range rules {
+		err = a.services.ChatbotRuleS.Delete(&rule)
+		if err != nil {
+			a.logError.Println("error deleting chatbot rule:", err)
+			return fmt.Errorf("Error deleting chatbot. Try again.")
+		}
 	}
 
 	err = a.services.ChatbotS.Delete(chatbot)
@@ -1189,60 +1265,241 @@ func (a *App) chatbotList() ([]models.Chatbot, error) {
 	return list, err
 }
 
-type ChatbotRule struct {
-	Message *ChatbotRuleMessage `json:"message"`
-	SendAs  *ChatbotRuleSender  `json:"send_as"`
-	Trigger *ChatbotRuleTrigger `json:"trigger"`
+func (a *App) ChatbotRules(chatbot *models.Chatbot) ([]chatbot.Rule, error) {
+	if chatbot == nil || chatbot.ID == nil {
+		return nil, fmt.Errorf("Invalid chatbot. Try again.")
+	}
+
+	rules, err := a.chatbotRules(*chatbot.ID)
+	if err != nil {
+		a.logError.Println("error getting chatbot rules:", err)
+		return nil, fmt.Errorf("Error getting chatbot rules. Try again.")
+	}
+
+	return rules, nil
 }
 
-type ChatbotRuleMessage struct {
-	FromFile *ChatbotRuleMessageFile `json:"from_file"`
-	FromText string                  `json:"from_text"`
+func (a *App) chatbotRules(chatbotID int64) ([]chatbot.Rule, error) {
+	modelsRules, err := a.services.ChatbotRuleS.ByChatbotID(chatbotID)
+	if err != nil {
+		return nil, fmt.Errorf("error querying chatbot rules: %v", err)
+	}
+
+	rules := []chatbot.Rule{}
+	for _, modelsRule := range modelsRules {
+		rule := chatbot.Rule{
+			ID:        modelsRule.ID,
+			ChatbotID: modelsRule.ChatbotID,
+		}
+
+		if modelsRule.Parameters != nil {
+			var params chatbot.RuleParameters
+			err = json.Unmarshal([]byte(*modelsRule.Parameters), &params)
+			if err != nil {
+				return nil, fmt.Errorf("error un-marshaling chatbot rule parameters from json: %v", err)
+			}
+
+			rule.Parameters = &params
+		}
+
+		rule.Running = a.chatbot.Running(*rule.ChatbotID, *rule.ID)
+
+		rule.Display = rule.Parameters.Message.FromText
+		if rule.Parameters.Message.FromFile != nil {
+			rule.Display = filepath.Base(rule.Parameters.Message.FromFile.Filepath)
+		}
+
+		rules = append(rules, rule)
+	}
+
+	chatbot.SortRules(rules)
+
+	return rules, err
 }
 
-type ChatbotRuleMessageFile struct {
-	Filepath   string `json:"filepath"`
-	RandomRead bool   `json:"random_read"`
+func (a *App) DeleteChatbotRule(rule *chatbot.Rule) error {
+	if rule == nil || rule.ID == nil || rule.ChatbotID == nil {
+		return fmt.Errorf("Invalid chatbot rule. Try again.")
+	}
+
+	mRule, err := rule.ToModelsChatbotRule()
+	if err != nil {
+		a.logError.Println("error converting chatbot.Rule into models.ChatbotRule:", err)
+		return fmt.Errorf("Error deleting chatbot rule. Try again.")
+	}
+
+	err = a.chatbot.Stop(rule)
+	if err != nil {
+		a.logError.Println("error stopping chatbot rule:", err)
+		return fmt.Errorf("Error deleting chatbot rule. Try again.")
+	}
+
+	err = a.services.ChatbotRuleS.Delete(mRule)
+	if err != nil {
+		a.logError.Println("error deleting chatbot rule:", err)
+		return fmt.Errorf("Error deleting chatbot rule. Try again.")
+	}
+
+	rules, err := a.chatbotRules(*rule.ChatbotID)
+	if err != nil {
+		a.logError.Println("error getting chatbot rules:", err)
+		return fmt.Errorf("Error deleting chatbot rule. Try again.")
+	}
+	runtime.EventsEmit(a.wails, "ChatbotRules", rules)
+
+	return nil
 }
 
-type ChatbotRuleSender struct {
-	Username  string `json:"username"`
-	ChannelID *int   `json:"channel_id"`
+func (a *App) NewChatbotRule(rule *chatbot.Rule) error {
+	if rule == nil || rule.ChatbotID == nil || rule.Parameters == nil {
+		return fmt.Errorf("Invalid chatbot rule. Try again.")
+	}
+
+	mRule, err := rule.ToModelsChatbotRule()
+	if err != nil {
+		a.logError.Println("error converting chatbot.Rule into models.ChatbotRule:", err)
+		return fmt.Errorf("Error creating chatbot rule. Try again.")
+	}
+
+	_, err = a.services.ChatbotRuleS.Create(mRule)
+	if err != nil {
+		a.logError.Println("error creating chatbot rule:", err)
+		return fmt.Errorf("Error creating chatbot rule. Try again.")
+	}
+
+	rules, err := a.chatbotRules(*rule.ChatbotID)
+	if err != nil {
+		a.logError.Println("error getting chatbot rules:", err)
+		return fmt.Errorf("Error creating chatbot rule. Try again.")
+	}
+	runtime.EventsEmit(a.wails, "ChatbotRules", rules)
+
+	return nil
 }
 
-type ChatbotRuleTrigger struct {
-	OnCommand *ChatbotRuleTriggerCommand `json:"on_command"`
-	OnEvent   *ChatbotRuleTriggerEvent   `json:"on_event"`
-	OnTimer   *time.Duration             `json:"on_timer"`
+func (a *App) RunChatbotRule(rule *chatbot.Rule) error {
+	if rule == nil || rule.ChatbotID == nil {
+		return fmt.Errorf("Invalid chatbot rule. Try again.")
+	}
+
+	mChatbot, err := a.services.ChatbotS.ByID(*rule.ChatbotID)
+	if err != nil {
+		a.logError.Println("error getting chatbot by ID:", err)
+		return fmt.Errorf("Error running chatbot rule. Try again.")
+	}
+	if mChatbot == nil {
+		return fmt.Errorf("Chatbot does not exist. Try again.")
+	}
+	if mChatbot.Url == nil {
+		a.logError.Println("chatbot url is nil")
+		return fmt.Errorf("Chatbot url is not set. Update url and try again.")
+	}
+
+	_, err = a.producers.ChatP.Start(*mChatbot.Url)
+	if err != nil {
+		a.logError.Println("error starting chat producer:", err)
+		// TODO: send error to UI that chatbot URL could not be started
+		//runtime.EventsEmit("Ch")
+	}
+
+	err = a.chatbot.Run(rule, *mChatbot.Url)
+	if err != nil {
+		a.logError.Println("error running chat bot rule:", err)
+		return fmt.Errorf("Error running chatbot rule. Try again.")
+	}
+
+	return nil
 }
 
-type ChatbotRuleTriggerCommand struct {
-	Command  string                                `json:"command"`
-	Restrict *ChatbotRuleTriggerCommandRestriction `json:"restrict"`
-	Timeout  time.Duration                         `json:"timeout"`
+func (a *App) StopChatbotRule(rule *chatbot.Rule) error {
+	err := a.chatbot.Stop(rule)
+	if err != nil {
+		a.logError.Println("error stopping chat bot rule:", err)
+		return fmt.Errorf("Error stopping chatbot rule. Try again.")
+	}
+
+	return nil
 }
 
-type ChatbotRuleTriggerCommandRestriction struct {
-	Bypass       *ChatbotRuleTriggerCommandRestrictionBypass `json:"bypass"`
-	ToAdmin      bool                                        `json:"to_admin"`
-	ToFollower   bool                                        `json:"to_follower"`
-	ToMod        bool                                        `json:"to_mod"`
-	ToStreamer   bool                                        `json:"to_streamer"`
-	ToSubscriber bool                                        `json:"to_subscriber"`
-	ToRant       int                                         `json:"to_rant"`
+func (a *App) UpdateChatbotRule(rule *chatbot.Rule) error {
+	if rule == nil || rule.ID == nil || rule.ChatbotID == nil {
+		return fmt.Errorf("Invalid chatbot rule. Try again.")
+	}
+
+	mRule, err := rule.ToModelsChatbotRule()
+	if err != nil {
+		a.logError.Println("error converting chatbot.Rule into models.ChatbotRule:", err)
+		return fmt.Errorf("Error updating chatbot rule. Try again.")
+	}
+
+	err = a.chatbot.Stop(rule)
+	if err != nil {
+		a.logError.Println("error stopping chatbot rule:", err)
+		return fmt.Errorf("Error updating chatbot rule. Try again.")
+	}
+
+	err = a.services.ChatbotRuleS.Update(mRule)
+	if err != nil {
+		a.logError.Println("error updating chatbot rule:", err)
+		return fmt.Errorf("Error updating chatbot rule. Try again.")
+	}
+
+	rules, err := a.chatbotRules(*rule.ChatbotID)
+	if err != nil {
+		a.logError.Println("error getting chatbot rules:", err)
+		return fmt.Errorf("Error updating chatbot rule. Try again.")
+	}
+	runtime.EventsEmit(a.wails, "ChatbotRules", rules)
+
+	return nil
 }
 
-type ChatbotRuleTriggerCommandRestrictionBypass struct {
-	IfAdmin    bool `json:"if_admin"`
-	IfMod      bool `json:"if_mod"`
-	IfStreamer bool `json:"if_streamer"`
+func (a *App) RunChatbotRules(chatbotID *int64) error {
+	if chatbotID == nil {
+		return fmt.Errorf("Invalid chatbot. Try again.")
+	}
+
+	rules, err := a.chatbotRules(*chatbotID)
+	if err != nil {
+		a.logError.Println("error getting chatbot rules:", err)
+		return fmt.Errorf("Error running chatbot rules. Try again.")
+	}
+
+	var errored bool
+	for _, rule := range rules {
+		if err = a.RunChatbotRule(&rule); err != nil {
+			errored = true
+		}
+	}
+	if errored {
+		return fmt.Errorf("An error occurred while running rules. Check error log for details.")
+	}
+
+	return nil
 }
 
-type ChatbotRuleTriggerEvent struct {
-	OnFollow    bool `json:"on_follow"`
-	OnSubscribe bool `json:"on_subscribe"`
-	OnRaid      bool `json:"on_raid"`
-	OnRant      int  `json:"on_rant"`
+func (a *App) StopChatbotRules(chatbotID *int64) error {
+	if chatbotID == nil {
+		return fmt.Errorf("Invalid chatbot. Try again.")
+	}
+
+	rules, err := a.chatbotRules(*chatbotID)
+	if err != nil {
+		a.logError.Println("error getting chatbot rules:", err)
+		return fmt.Errorf("Error stopping chatbot rules. Try again.")
+	}
+
+	var errored bool
+	for _, rule := range rules {
+		if err = a.StopChatbotRule(&rule); err != nil {
+			errored = true
+		}
+	}
+	if errored {
+		return fmt.Errorf("An error occurred while stopping rules. Check error log for details.")
+	}
+
+	return nil
 }
 
 func (a *App) OpenFileDialog() (string, error) {
