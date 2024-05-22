@@ -1,13 +1,35 @@
+# Roadmap
+
+Rum Goggles App:
+- Chat bot rule triggers on stream events
+    - On: follow, subscribe, rant, raid
+- Chat polls
+- Stream statistics
+- Stream moderator bot
+
+Rum Goggles Service:
+- Channel points
+- Spam/Troll tracking
+
 # Doing
 
+Before v1-alpha release:
+- stop all running rules when chat bot is deleted
+- indicator in chatbot that producer is running
+    - this can be in many different places as needed
 
+Custom stream moderator rules
+- block on keywords
+- block on regex/pattern
+- blocks can be: timed, stream, forever
 
 Next steps:
-- add option to delete bot rules
+- enable/disable rules from starting, including start all/stop all buttons
 - delete page needs to handle new architecture
     - app.producers.Active(*name) instead of app.producers.ApiP.Active(*name)
     - app.producers.Stop(*name)
 - activatePage: verify defer page.activeMu.Unlock does not conflict with display function
+- in chatbot list, show indicator if any rules in chatbot are running
 
 For Dashboard page,
 - Api or chat producer could error, need to be able to start/restart both handlers on error
