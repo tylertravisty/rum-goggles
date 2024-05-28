@@ -1414,7 +1414,7 @@ function EventOptionsRant(props) {
             setValidMaxAmount(true);
         }
 
-        setMinAmount(event.target.value);
+        setMinAmount(amount);
         props.setOptions({ min_amount: amount, max_amount: maxAmount });
     };
     const [maxAmount, setMaxAmount] = useState(
