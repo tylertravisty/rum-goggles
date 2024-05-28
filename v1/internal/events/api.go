@@ -16,6 +16,10 @@ type Api struct {
 	Stop bool
 }
 
+type ApiFollower struct {
+	Username string
+}
+
 type apiProducer struct {
 	cancel   context.CancelFunc
 	cancelMu sync.Mutex

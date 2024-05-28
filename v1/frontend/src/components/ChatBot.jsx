@@ -30,6 +30,7 @@ import {
     StopBigRed,
 } from '../assets';
 import './ChatBot.css';
+import { DropDown } from './DropDown';
 
 function ChatBot(props) {
     const [chatbots, setChatbots] = useState([]);
@@ -326,12 +327,52 @@ function ChatbotRule(props) {
         return hours + 'h ' + minutes + 'm ' + seconds + 's';
     };
 
+    const printTriggerEvent = () => {
+        const onEvent = props.rule.parameters.trigger.on_event;
+        switch (true) {
+            case onEvent.from_account !== undefined && onEvent.from_account !== null:
+                const fromAccount = props.rule.parameters.trigger.on_event.from_account;
+                switch (true) {
+                    case fromAccount.on_follow !== undefined && fromAccount.on_follow !== null:
+                        return 'Follow';
+                    default:
+                        return '';
+                }
+                break;
+            case onEvent.from_channel !== undefined && onEvent.from_channel !== null:
+                const fromChannel = props.rule.parameters.trigger.on_event.from_channel;
+                switch (true) {
+                    case fromChannel.on_follow !== undefined && fromChannel.on_follow !== null:
+                        return 'Follow';
+                    default:
+                        return '';
+                }
+                break;
+            case onEvent.from_live_stream !== undefined && onEvent.from_live_stream !== null:
+                const fromLiveStream = props.rule.parameters.trigger.on_event.from_live_stream;
+                switch (true) {
+                    case fromLiveStream.on_raid !== undefined && fromLiveStream.on_raid !== null:
+                        return 'Raid';
+                    case fromLiveStream.on_rant !== undefined && fromLiveStream.on_rant !== null:
+                        return 'Rant';
+                    case fromLiveStream.on_sub !== undefined && fromLiveStream.on_sub !== null:
+                        return 'Sub';
+                    default:
+                        return '';
+                }
+            default:
+                return '';
+        }
+    };
+
     const printTrigger = () => {
         let trigger = props.rule.parameters.trigger;
 
         switch (true) {
             case trigger.on_command !== undefined && trigger.on_command !== null:
                 return trigger.on_command.command;
+            case trigger.on_event !== undefined && trigger.on_event !== null:
+                return printTriggerEvent();
             case trigger.on_timer !== undefined && trigger.on_timer !== null:
                 return prettyTimer(props.rule.parameters.trigger.on_timer);
         }
@@ -372,6 +413,8 @@ function ChatbotRule(props) {
         switch (true) {
             case trigger.on_command !== undefined && trigger.on_command !== null:
                 return 'on_command';
+            case trigger.on_event !== undefined && trigger.on_event !== null:
+                return 'on_event';
             case trigger.on_timer !== undefined && trigger.on_timer !== null:
                 return 'on_timer';
         }
@@ -600,6 +643,7 @@ function ModalRule(props) {
             });
     };
 
+    console.log('back:', back);
     return (
         <>
             {error !== '' && (
@@ -611,6 +655,49 @@ function ModalRule(props) {
                     message={error}
                     submitButton={'OK'}
                     onSubmit={() => setError('')}
+                />
+            )}
+            {stage === 'event-from_stream' && (
+                <ModalRuleEventStream
+                    onBack={goBack}
+                    onClose={props.onClose}
+                    rule={rule}
+                    setRule={setRule}
+                    setStage={updateStage}
+                    show={props.show}
+                />
+            )}
+            {stage === 'message' && (
+                <ModalRuleMessage
+                    onBack={goBack}
+                    onClose={props.onClose}
+                    rule={rule}
+                    setRule={setRule}
+                    setStage={updateStage}
+                    show={props.show}
+                />
+            )}
+            {stage === 'review' && (
+                <ModalRuleReview
+                    edit={edit}
+                    setEdit={setEdit}
+                    new={props.new}
+                    onBack={goBack}
+                    onClose={props.onClose}
+                    onDelete={props.onDelete}
+                    onSubmit={submit}
+                    rule={rule}
+                    show={props.show}
+                />
+            )}
+            {stage === 'sender' && (
+                <ModalRuleSender
+                    onBack={goBack}
+                    onClose={props.onClose}
+                    rule={rule}
+                    setRule={setRule}
+                    setStage={updateStage}
+                    show={props.show}
                 />
             )}
             {stage === 'trigger' && (
@@ -632,6 +719,16 @@ function ModalRule(props) {
                     show={props.show}
                 />
             )}
+            {stage === 'trigger-on_event' && (
+                <ModalRuleTriggerEvent
+                    onBack={goBack}
+                    onClose={props.onClose}
+                    rule={rule}
+                    setRule={setRule}
+                    setStage={updateStage}
+                    show={props.show}
+                />
+            )}
             {stage === 'trigger-on_timer' && (
                 <ModalRuleTriggerTimer
                     onBack={goBack}
@@ -639,39 +736,6 @@ function ModalRule(props) {
                     rule={rule}
                     setRule={setRule}
                     setStage={updateStage}
-                    show={props.show}
-                />
-            )}
-            {stage === 'message' && (
-                <ModalRuleMessage
-                    onBack={goBack}
-                    onClose={props.onClose}
-                    rule={rule}
-                    setRule={setRule}
-                    setStage={updateStage}
-                    show={props.show}
-                />
-            )}
-            {stage === 'sender' && (
-                <ModalRuleSender
-                    onBack={goBack}
-                    onClose={props.onClose}
-                    rule={rule}
-                    setRule={setRule}
-                    setStage={updateStage}
-                    show={props.show}
-                />
-            )}
-            {stage === 'review' && (
-                <ModalRuleReview
-                    edit={edit}
-                    setEdit={setEdit}
-                    new={props.new}
-                    onBack={goBack}
-                    onClose={props.onClose}
-                    onDelete={props.onDelete}
-                    onSubmit={submit}
-                    rule={rule}
                     show={props.show}
                 />
             )}
@@ -707,6 +771,20 @@ function ModalRuleTrigger(props) {
         next('trigger-on_command');
     };
 
+    const triggerOnEvent = () => {
+        const rule = props.rule;
+        if (rule.trigger == undefined || rule.trigger == null) {
+            rule.trigger = {};
+        }
+
+        rule.trigger.on_command = null;
+        rule.trigger.on_timer = null;
+
+        props.setRule(rule);
+
+        next('trigger-on_event');
+    };
+
     const triggerOnTimer = () => {
         const rule = props.rule;
         if (rule.trigger == undefined || rule.trigger == null) {
@@ -739,18 +817,15 @@ function ModalRuleTrigger(props) {
                             src={ChevronRight}
                         />
                     </button>
-                    {/* <button
-                        className='modal-add-account-channel-button'
-                        onClick={() => next('trigger-stream_event')}
-                    >
+                    <button className='modal-add-account-channel-button' onClick={triggerOnEvent}>
                         <div className='modal-add-account-channel-button-left'>
-                            <span>Stream Event</span>
+                            <span>Event</span>
                         </div>
                         <img
                             className='modal-add-account-channel-button-right-icon'
                             src={ChevronRight}
                         />
-                    </button> */}
+                    </button>
                     <button className='modal-add-account-channel-button' onClick={triggerOnTimer}>
                         <div className='modal-add-account-channel-button-left'>
                             <span>Timer</span>
@@ -955,6 +1030,456 @@ function ModalRuleTriggerCommand(props) {
                 <div style={{ height: '56px' }}></div>
             </div>
         </Modal>
+    );
+}
+
+function ModalRuleTriggerEvent(props) {
+    const [event, setEvent] = useState('');
+    const [validEvent, setValidEvent] = useState(true);
+    const updateEvent = (e) => {
+        setEvent(e);
+        if (e !== event) {
+            setOptions({});
+            setValidOptions(true);
+            switch (e) {
+                case 'Rant':
+                    setOptions({ min_amount: 0, max_amount: 0 });
+                    break;
+                default:
+                    setOptions({});
+            }
+        }
+        setValidEvent(true);
+    };
+    const [options, setOptions] = useState({});
+    const [validOptions, setValidOptions] = useState(true);
+    const [source, setSource] = useState('');
+    const [validSource, setValidSource] = useState(true);
+    const updateSource = (s) => {
+        setSource(s);
+        if (s !== source) {
+            setEvent('');
+            setValidOptions(true);
+        }
+        setValidSource(true);
+    };
+    const [parameters, setParameters] = useState({
+        Account: { events: ['Follow'] },
+        Channel: { events: ['Follow'] },
+        'Live Stream': { events: ['Raid', 'Rant', 'Sub'] },
+    });
+
+    useEffect(() => {
+        if (props.rule.trigger.on_event === undefined || props.rule.trigger.on_event === null) {
+            return;
+        }
+
+        const onEvent = props.rule.trigger.on_event;
+        switch (true) {
+            case onEvent.from_account !== undefined && onEvent.from_account !== null:
+                setSource('Account');
+                const fromAccount = props.rule.trigger.on_event.from_account;
+                switch (true) {
+                    case fromAccount.on_follow !== undefined && fromAccount.on_follow !== null:
+                        setEvent('Follow');
+                        break;
+                }
+                break;
+            case onEvent.from_channel !== undefined && onEvent.from_channel !== null:
+                setSource('Channel');
+                const fromChannel = props.rule.trigger.on_event.from_channel;
+                switch (true) {
+                    case fromChannel.on_follow !== undefined && fromChannel.on_follow !== null:
+                        setEvent('Follow');
+                        break;
+                }
+                break;
+            case onEvent.from_live_stream !== undefined && onEvent.from_live_stream !== null:
+                setSource('Live Stream');
+                const fromLiveStream = props.rule.trigger.on_event.from_live_stream;
+                switch (true) {
+                    case fromLiveStream.on_raid !== undefined && fromLiveStream.on_raid !== null:
+                        setEvent('Raid');
+                        break;
+                    case fromLiveStream.on_rant !== undefined && fromLiveStream.on_rant !== null:
+                        setEvent('Rant');
+                        setOptions(props.rule.trigger.on_event.from_live_stream.on_rant);
+                        break;
+                    case fromLiveStream.on_sub !== undefined && fromLiveStream.on_sub !== null:
+                        setEvent('Sub');
+                        break;
+                }
+                break;
+            default:
+                return;
+        }
+    }, []);
+
+    const validRantOptions = () => {
+        if (isNaN(options.min_amount) || isNaN(options.max_amount)) {
+            setValidOptions(false);
+            return false;
+        }
+
+        if (options.max_amount !== 0 && options.min_amount > options.max_amount) {
+            setValidOptions(false);
+            return false;
+        }
+
+        return true;
+    };
+
+    const fromAccount = () => {
+        let from_account = {};
+        switch (event) {
+            case 'Follow':
+                from_account.name = options.page;
+                from_account.on_follow = {};
+                break;
+            default:
+                setValidEvent(false);
+                return;
+        }
+
+        const rule = props.rule;
+        if (rule.trigger.on_event == undefined || rule.trigger.on_event == null) {
+            rule.trigger.on_event = {};
+        }
+
+        rule.trigger.on_event.from_account = from_account;
+        rule.trigger.on_event.from_channel = null;
+        rule.trigger.on_event.from_live_stream = null;
+
+        props.setRule(rule);
+        next('message');
+    };
+
+    const fromChannel = () => {
+        let from_channel = {};
+        switch (event) {
+            case 'Follow':
+                from_channel.name = options.page;
+                from_channel.on_follow = {};
+                break;
+            default:
+                setValidEvent(false);
+                return;
+        }
+
+        const rule = props.rule;
+        if (rule.trigger.on_event == undefined || rule.trigger.on_event == null) {
+            rule.trigger.on_event = {};
+        }
+
+        rule.trigger.on_event.from_account = null;
+        rule.trigger.on_event.from_channel = from_channel;
+        rule.trigger.on_event.from_live_stream = null;
+
+        props.setRule(rule);
+        next('message');
+    };
+
+    const fromLiveStream = () => {
+        let from_live_stream = {};
+        switch (event) {
+            case 'Raid':
+                from_live_stream.on_raid = {};
+                break;
+            case 'Rant':
+                if (!validRantOptions()) {
+                    return;
+                }
+                from_live_stream.on_rant = options;
+                break;
+            case 'Sub':
+                from_live_stream.on_sub = {};
+                break;
+            default:
+                setValidEvent(false);
+                return;
+        }
+
+        const rule = props.rule;
+        if (rule.trigger.on_event == undefined || rule.trigger.on_event == null) {
+            rule.trigger.on_event = {};
+        }
+
+        rule.trigger.on_event.from_account = null;
+        rule.trigger.on_event.from_channel = null;
+        rule.trigger.on_event.from_live_stream = from_live_stream;
+
+        props.setRule(rule);
+        next('message');
+    };
+
+    const back = () => {
+        props.onBack();
+    };
+
+    const next = (stage) => {
+        props.setStage(stage);
+    };
+
+    const submit = () => {
+        switch (source) {
+            case 'Account':
+                fromAccount();
+                break;
+            case 'Channel':
+                fromChannel();
+                break;
+            case 'Live Stream':
+                fromLiveStream();
+                break;
+            default:
+                setValidSource(false);
+        }
+    };
+
+    return (
+        <Modal
+            cancelButton={'Back'}
+            onCancel={back}
+            onClose={props.onClose}
+            show={props.show}
+            submitButton={'Next'}
+            onSubmit={submit}
+            style={{ height: '480px', minHeight: '480px', width: '360px', minWidth: '360px' }}
+        >
+            <div className='modal-add-account-channel'>
+                <span className='modal-add-account-channel-title'>Configure Event</span>
+                <div className='chatbot-modal-event-body'>
+                    <div className='chatbot-modal-event-body-top'>
+                        <div className='chatbot-modal-event-setting'>
+                            <label
+                                className={
+                                    validSource
+                                        ? 'chatbot-modal-option-label'
+                                        : 'chatbot-modal-option-label-warning'
+                                }
+                            >
+                                Source{!validSource && '*'}
+                            </label>
+                            <div style={{ width: '250px' }}>
+                                <DropDown
+                                    options={Object.keys(parameters)}
+                                    select={updateSource}
+                                    selected={source}
+                                />
+                            </div>
+                        </div>
+                        <div className='chatbot-modal-event-setting'>
+                            <label
+                                className={
+                                    validEvent
+                                        ? 'chatbot-modal-option-label'
+                                        : 'chatbot-modal-option-label-warning'
+                                }
+                            >
+                                Event{!validEvent && '*'}
+                            </label>
+                            <div style={{ width: '250px' }}>
+                                {source !== '' && (
+                                    <DropDown
+                                        options={parameters[source].events}
+                                        select={updateEvent}
+                                        selected={event}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                    <div className='chatbot-modal-event-body-bottom'>
+                        <label
+                            className={
+                                validOptions
+                                    ? 'chatbot-modal-event-options-label'
+                                    : 'chatbot-modal-event-options-label-warning'
+                            }
+                        >
+                            {validOptions ? 'Options' : 'Verify Options'}
+                        </label>
+                        <div className='chatbot-modal-event-options'>
+                            {event === 'Rant' && (
+                                <EventOptionsRant options={options} setOptions={setOptions} />
+                            )}
+                            {event === 'Follow' && (
+                                <EventOptionsFollow
+                                    options={options}
+                                    setOptions={setOptions}
+                                    source={source}
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+                <div></div>
+            </div>
+        </Modal>
+    );
+}
+
+function EventOptionsFollow(props) {
+    const [accounts, setAccounts] = useState({});
+    const [page, setPage] = useState(props.options.page === undefined ? '' : props.options.page);
+    const updatePage = (name) => {
+        setPage(name);
+        props.setOptions({ page: name });
+    };
+
+    useEffect(() => {
+        AccountList()
+            .then((response) => {
+                setAccounts(response);
+            })
+            .catch((error) => {
+                setError(error);
+            });
+    }, []);
+
+    const sortChannels = (channels) => {
+        let sorted = [...channels].sort((a, b) =>
+            a.name.toLowerCase() > b.name.toLowerCase() ? 1 : -1
+        );
+
+        return sorted;
+    };
+
+    const sortAccounts = () => {
+        let keys = Object.keys(accounts);
+
+        let sorted = [...keys].sort((a, b) =>
+            accounts[a].account.username.toLowerCase() > accounts[b].account.username.toLowerCase()
+                ? 1
+                : -1
+        );
+
+        return sorted;
+    };
+
+    const sortPages = () => {
+        let pages = [];
+
+        const keys = sortAccounts();
+        keys.forEach((key, i) => {
+            const account = accounts[key];
+            if (props.source === 'Account') {
+                pages.push(account.account.username);
+            }
+            if (props.source === 'Channel') {
+                const channels = sortChannels(account.channels);
+                channels.forEach((channel, j) => {
+                    pages.push(channel.name);
+                });
+            }
+        });
+
+        return pages;
+    };
+
+    return (
+        <div className='modal-add-account-channel-body' style={{ height: '90%' }}>
+            <div className='chatbot-modal-pages'>
+                {sortPages().map((option, index) => (
+                    <div className={'chatbot-modal-page'} key={index}>
+                        <button
+                            className='chatbot-modal-page-button'
+                            onClick={() => updatePage(option)}
+                            style={{
+                                backgroundColor: page === option ? '#85c742' : '',
+                            }}
+                        >
+                            {option}
+                        </button>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function EventOptionsRant(props) {
+    const [minAmount, setMinAmount] = useState(
+        isNaN(props.options.min_amount) ? 0 : props.options.min_amount
+    );
+    const updateMinAmount = (event) => {
+        let amount = parseInt(event.target.value);
+        if (isNaN(amount)) {
+            amount = 0;
+        }
+
+        if (maxAmount !== 0 && amount > maxAmount) {
+            setValidMaxAmount(false);
+        } else {
+            setValidMaxAmount(true);
+        }
+
+        setMinAmount(event.target.value);
+        props.setOptions({ min_amount: amount, max_amount: maxAmount });
+    };
+    const [maxAmount, setMaxAmount] = useState(
+        isNaN(props.options.max_amount) ? 0 : props.options.max_amount
+    );
+    const updateMaxAmount = (event) => {
+        let amount = parseInt(event.target.value);
+        if (isNaN(amount)) {
+            amount = 0;
+        }
+
+        if (amount !== 0) {
+            if (amount < minAmount) {
+                setValidMaxAmount(false);
+            } else {
+                setValidMaxAmount(true);
+            }
+        } else {
+            setValidMaxAmount(true);
+        }
+
+        setMaxAmount(amount);
+        props.setOptions({ min_amount: minAmount, max_amount: amount });
+    };
+    const [validMaxAmount, setValidMaxAmount] = useState(true);
+
+    return (
+        <>
+            <div className='chatbot-modal-setting' style={{ paddingTop: '0px' }}>
+                <label className='chatbot-modal-setting-description'>Min rant amount</label>
+                <div>
+                    <span className='command-rant-amount-symbol'>$</span>
+                    <input
+                        className='command-rant-amount'
+                        onChange={updateMinAmount}
+                        placeholder='0'
+                        size='4'
+                        type='text'
+                        value={minAmount === 0 ? '' : minAmount}
+                    />
+                </div>
+            </div>
+            <div className='chatbot-modal-setting' style={{ paddingTop: '0px' }}>
+                <label
+                    className={
+                        validMaxAmount
+                            ? 'chatbot-modal-setting-description'
+                            : 'chatbot-modal-setting-description-warning'
+                    }
+                >
+                    Max rant amount{!validMaxAmount && ' (>= min)'}
+                </label>
+                <div>
+                    <span className='command-rant-amount-symbol'>$</span>
+                    <input
+                        className='command-rant-amount'
+                        onChange={updateMaxAmount}
+                        placeholder='0'
+                        size='4'
+                        type='text'
+                        value={maxAmount === 0 ? '' : maxAmount}
+                    />
+                </div>
+            </div>
+        </>
     );
 }
 

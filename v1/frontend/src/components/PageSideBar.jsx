@@ -191,6 +191,10 @@ function AccountIcon(props) {
     }, [props.account.username]);
 
     useEffect(() => {
+        setLoggedIn(props.account.cookies !== null);
+    }, [props.account.cookies]);
+
+    useEffect(() => {
         if (username !== '') {
             PageStatus(pageName(username));
         }

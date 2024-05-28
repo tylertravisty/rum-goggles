@@ -1,4 +1,5 @@
 import chess_rook from './icons/Font-Awesome/chess-rook.png';
+import chevron_down from './icons/twbs/chevron-down.png';
 import chevron_left from './icons/twbs/chevron-left.png';
 import chevron_right from './icons/twbs/chevron-right.png';
 import circle_green_background from './icons/twbs/circle-green-background.png';
@@ -25,6 +26,7 @@ import logo from './logo/logo.png';
 
 export const ChessRook = chess_rook;
 export const ChevronLeft = chevron_left;
+export const ChevronDown = chevron_down;
 export const ChevronRight = chevron_right;
 export const CircleGreenBackground = circle_green_background;
 export const CircleRedBackground = circle_red_background;

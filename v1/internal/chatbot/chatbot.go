@@ -43,12 +43,32 @@ func (c clients) byUsernameLivestream(username string, url string) *rumblelivest
 	return user.byLivestream(url)
 }
 
+type followReceiver struct {
+	apiCh  chan events.ApiFollower
+	latest time.Time
+}
+
 type receiver struct {
 	onCommand   map[string]map[int64]chan events.Chat
 	onCommandMu sync.Mutex
-	//onFollow []chan ???
-	//onRant      []chan events.Chat
-	//onSubscribe []chan events.Chat
+	onFollow    map[int64]*followReceiver
+	onFollowMu  sync.Mutex
+	onRaid      map[int64]chan events.Chat
+	onRaidMu    sync.Mutex
+	onRant      map[int64]chan events.Chat
+	onRantMu    sync.Mutex
+	onSub       map[int64]chan events.Chat
+	onSubMu     sync.Mutex
+}
+
+func newReceiver() *receiver {
+	return &receiver{
+		onCommand: map[string]map[int64]chan events.Chat{},
+		onFollow:  map[int64]*followReceiver{},
+		onRaid:    map[int64]chan events.Chat{},
+		onRant:    map[int64]chan events.Chat{},
+		onSub:     map[int64]chan events.Chat{},
+	}
 }
 
 type Bot struct {
@@ -107,6 +127,10 @@ func (cb *Chatbot) addClient(username string, livestreamUrl string) (*rumblelive
 		return nil, fmt.Errorf("error querying account by username: %v", err)
 	}
 
+	if account.Cookies == nil {
+		return nil, fmt.Errorf("account cookies are nil")
+	}
+
 	var cookies []*http.Cookie
 	err = json.Unmarshal([]byte(*account.Cookies), &cookies)
 	if err != nil {
@@ -154,10 +178,17 @@ func (cb *Chatbot) Run(rule *Rule, url string) error {
 		}
 	}
 
+	page := ""
+	rulePage := rule.Page()
+	if rulePage != nil {
+		page = rulePage.Prefix + strings.ReplaceAll(rulePage.Name, " ", "")
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	runner := &Runner{
 		cancel: cancel,
 		client: client,
+		page:   page,
 		rule:   *rule,
 		wails:  cb.wails,
 	}
@@ -187,13 +218,18 @@ func (cb *Chatbot) initRunner(runner *Runner) error {
 	runner.channelIDMu.Unlock()
 
 	switch {
-	case runner.rule.Parameters.Trigger.OnTimer != nil:
-		runner.run = runner.runOnTimer
 	case runner.rule.Parameters.Trigger.OnCommand != nil:
 		err = cb.initRunnerCommand(runner)
 		if err != nil {
 			return fmt.Errorf("error initializing command: %v", err)
 		}
+	case runner.rule.Parameters.Trigger.OnEvent != nil:
+		err = cb.initRunnerEvent(runner)
+		if err != nil {
+			return fmt.Errorf("error initializing event: %v", err)
+		}
+	case runner.rule.Parameters.Trigger.OnTimer != nil:
+		runner.run = runner.runOnTimer
 	}
 
 	// cb.runnersMu.Lock()
@@ -233,18 +269,176 @@ func (cb *Chatbot) initRunnerCommand(runner *Runner) error {
 	defer cb.receiversMu.Unlock()
 	rcvr, exists := cb.receivers[runner.client.LiveStreamUrl]
 	if !exists {
-		rcvr = &receiver{
-			onCommand: map[string]map[int64]chan events.Chat{},
-		}
+		rcvr = newReceiver()
 		cb.receivers[runner.client.LiveStreamUrl] = rcvr
 	}
 
+	rcvr.onCommandMu.Lock()
+	defer rcvr.onCommandMu.Unlock()
 	chans, exists := rcvr.onCommand[cmd]
 	if !exists {
 		chans = map[int64]chan events.Chat{}
 		rcvr.onCommand[cmd] = chans
 	}
 	chans[*runner.rule.ID] = chatCh
+
+	return nil
+}
+
+func (cb *Chatbot) initRunnerEvent(runner *Runner) error {
+	event := runner.rule.Parameters.Trigger.OnEvent
+	switch {
+	case event.FromAccount != nil:
+		return cb.initRunnerEventFromAccount(runner)
+	case event.FromChannel != nil:
+		return cb.initRunnerEventFromChannel(runner)
+	case event.FromLiveStream != nil:
+		return cb.initRunnerEventFromLiveStream(runner)
+	}
+
+	return fmt.Errorf("runner event not supported")
+}
+
+func (cb *Chatbot) initRunnerEventFromAccount(runner *Runner) error {
+	fromAccount := runner.rule.Parameters.Trigger.OnEvent.FromAccount
+	switch {
+	case fromAccount.OnFollow != nil:
+		return cb.initRunnerEventFromAccountOnFollow(runner)
+	}
+
+	return fmt.Errorf("runner event not supported")
+}
+
+func (cb *Chatbot) initRunnerEventFromAccountOnFollow(runner *Runner) error {
+	runner.run = runner.runOnEventFromAccountOnFollow
+
+	apiCh := make(chan events.ApiFollower, 10)
+	runner.apiCh = apiCh
+
+	cb.receiversMu.Lock()
+	defer cb.receiversMu.Unlock()
+	rcvr, exists := cb.receivers[runner.page]
+	if !exists {
+		rcvr = newReceiver()
+		cb.receivers[runner.page] = rcvr
+	}
+
+	// TODO: should I check if channel already exists, if so delete it?
+	rcvr.onFollowMu.Lock()
+	defer rcvr.onFollowMu.Unlock()
+	rcvr.onFollow[*runner.rule.ID] = &followReceiver{apiCh, time.Now()}
+
+	return nil
+}
+
+func (cb *Chatbot) initRunnerEventFromChannel(runner *Runner) error {
+	fromChannel := runner.rule.Parameters.Trigger.OnEvent.FromChannel
+	switch {
+	case fromChannel.OnFollow != nil:
+		return cb.initRunnerEventFromChannelOnFollow(runner)
+	}
+
+	return fmt.Errorf("runner event not supported")
+}
+
+func (cb *Chatbot) initRunnerEventFromChannelOnFollow(runner *Runner) error {
+	runner.run = runner.runOnEventFromChannelOnFollow
+
+	apiCh := make(chan events.ApiFollower, 10)
+	runner.apiCh = apiCh
+
+	cb.receiversMu.Lock()
+	defer cb.receiversMu.Unlock()
+	rcvr, exists := cb.receivers[runner.page]
+	if !exists {
+		rcvr = newReceiver()
+		cb.receivers[runner.page] = rcvr
+	}
+
+	// TODO: should I check if channel already exists, if so delete it?
+	rcvr.onFollowMu.Lock()
+	defer rcvr.onFollowMu.Unlock()
+	rcvr.onFollow[*runner.rule.ID] = &followReceiver{apiCh, time.Now()}
+
+	return nil
+}
+
+func (cb *Chatbot) initRunnerEventFromLiveStream(runner *Runner) error {
+	fromLiveStream := runner.rule.Parameters.Trigger.OnEvent.FromLiveStream
+	switch {
+	case fromLiveStream.OnRaid != nil:
+		return cb.initRunnerEventFromLiveStreamOnRaid(runner)
+	case fromLiveStream.OnRant != nil:
+		return cb.initRunnerEventFromLiveStreamOnRant(runner)
+	case fromLiveStream.OnSub != nil:
+		return cb.initRunnerEventFromLiveStreamOnSub(runner)
+	}
+
+	return fmt.Errorf("runner event not supported")
+}
+
+func (cb *Chatbot) initRunnerEventFromLiveStreamOnRaid(runner *Runner) error {
+	runner.run = runner.runOnEventFromLiveStreamOnRaid
+
+	chatCh := make(chan events.Chat, 10)
+	runner.chatCh = chatCh
+
+	cb.receiversMu.Lock()
+	defer cb.receiversMu.Unlock()
+	rcvr, exists := cb.receivers[runner.client.LiveStreamUrl]
+	if !exists {
+		rcvr = newReceiver()
+		cb.receivers[runner.client.LiveStreamUrl] = rcvr
+	}
+
+	// TODO: should I check if channel already exists, if so delete it?
+	rcvr.onRaidMu.Lock()
+	defer rcvr.onRaidMu.Unlock()
+	rcvr.onRaid[*runner.rule.ID] = chatCh
+
+	return nil
+}
+
+func (cb *Chatbot) initRunnerEventFromLiveStreamOnRant(runner *Runner) error {
+	runner.run = runner.runOnEventFromLiveStreamOnRant
+
+	chatCh := make(chan events.Chat, 10)
+	runner.chatCh = chatCh
+
+	cb.receiversMu.Lock()
+	defer cb.receiversMu.Unlock()
+	rcvr, exists := cb.receivers[runner.client.LiveStreamUrl]
+	if !exists {
+		rcvr = newReceiver()
+		cb.receivers[runner.client.LiveStreamUrl] = rcvr
+	}
+
+	// TODO: should I check if channel already exists, if so delete it?
+	rcvr.onRantMu.Lock()
+	defer rcvr.onRantMu.Unlock()
+	rcvr.onRant[*runner.rule.ID] = chatCh
+
+	return nil
+}
+
+func (cb *Chatbot) initRunnerEventFromLiveStreamOnSub(runner *Runner) error {
+	runner.run = runner.runOnEventFromLiveStreamOnSub
+
+	chatCh := make(chan events.Chat, 10)
+	runner.chatCh = chatCh
+
+	cb.receiversMu.Lock()
+	defer cb.receiversMu.Unlock()
+	rcvr, exists := cb.receivers[runner.client.LiveStreamUrl]
+	if !exists {
+		rcvr = newReceiver()
+		cb.receivers[runner.client.LiveStreamUrl] = rcvr
+	}
+
+	// TODO: should I check if channel already exists, if so delete it?
+	rcvr.onSubMu.Lock()
+	defer rcvr.onSubMu.Unlock()
+	rcvr.onSub[*runner.rule.ID] = chatCh
 
 	return nil
 }
@@ -312,12 +506,6 @@ func (cb *Chatbot) stop(rule *Rule) error {
 }
 
 func (cb *Chatbot) stopRunner(chatbotID int64, ruleID int64) bool {
-	// cb.runnersMu.Lock()
-	// defer cb.runnersMu.Unlock()
-	// runner, exists := cb.runners[id]
-	// if !exists {
-	// 	return
-	// }
 	cb.botsMu.Lock()
 	defer cb.botsMu.Unlock()
 	bot, exists := cb.bots[chatbotID]
@@ -334,7 +522,6 @@ func (cb *Chatbot) stopRunner(chatbotID int64, ruleID int64) bool {
 
 	stopped := true
 	runner.stop()
-	// delete(cb.runners, id)
 	delete(bot.runners, ruleID)
 
 	switch {
@@ -342,6 +529,11 @@ func (cb *Chatbot) stopRunner(chatbotID int64, ruleID int64) bool {
 		err := cb.closeRunnerCommand(runner)
 		if err != nil {
 			cb.logError.Println("error closing runner command:", err)
+		}
+	case runner.rule.Parameters.Trigger.OnEvent != nil:
+		err := cb.closeRunnerEvent(runner)
+		if err != nil {
+			cb.logError.Println("error closing runner event:", err)
 		}
 	}
 
@@ -361,6 +553,9 @@ func (cb *Chatbot) closeRunnerCommand(runner *Runner) error {
 		return fmt.Errorf("receiver for runner does not exist")
 	}
 
+	rcvr.onCommandMu.Lock()
+	defer rcvr.onCommandMu.Unlock()
+
 	cmd := runner.rule.Parameters.Trigger.OnCommand.Command
 	chans, exists := rcvr.onCommand[cmd]
 	if !exists {
@@ -378,8 +573,193 @@ func (cb *Chatbot) closeRunnerCommand(runner *Runner) error {
 	return nil
 }
 
-func (cb *Chatbot) HandleChat(event events.Chat) {
+func (cb *Chatbot) closeRunnerEvent(runner *Runner) error {
+	if runner == nil || runner.rule.ID == nil || runner.rule.Parameters == nil || runner.rule.Parameters.Trigger == nil || runner.rule.Parameters.Trigger.OnEvent == nil {
+		return fmt.Errorf("invalid runner event")
+	}
 
+	switch {
+	case runner.rule.Parameters.Trigger.OnEvent.FromAccount != nil:
+		return cb.closeRunnerEventFromAccount(runner)
+	case runner.rule.Parameters.Trigger.OnEvent.FromChannel != nil:
+		return cb.closeRunnerEventFromChannel(runner)
+	case runner.rule.Parameters.Trigger.OnEvent.FromLiveStream != nil:
+		return cb.closeRunnerEventFromLiveStream(runner)
+	}
+
+	return fmt.Errorf("runner event not supported")
+}
+
+func (cb *Chatbot) closeRunnerEventFromAccount(runner *Runner) error {
+	if runner == nil || runner.rule.ID == nil || runner.rule.Parameters == nil || runner.rule.Parameters.Trigger == nil || runner.rule.Parameters.Trigger.OnEvent == nil || runner.rule.Parameters.Trigger.OnEvent.FromAccount == nil {
+		return fmt.Errorf("invalid runner event")
+	}
+
+	cb.receiversMu.Lock()
+	defer cb.receiversMu.Unlock()
+
+	rcvr, exists := cb.receivers[runner.page]
+	if !exists {
+		return fmt.Errorf("receiver for runner does not exist")
+	}
+
+	fromAccount := runner.rule.Parameters.Trigger.OnEvent.FromAccount
+	switch {
+	case fromAccount.OnFollow != nil:
+		rcvr.onFollowMu.Lock()
+		defer rcvr.onFollowMu.Unlock()
+		followR, exists := rcvr.onFollow[*runner.rule.ID]
+		if !exists {
+			return fmt.Errorf("channel for runner does not exist")
+		}
+		close(followR.apiCh)
+		delete(rcvr.onFollow, *runner.rule.ID)
+	}
+
+	return nil
+}
+
+func (cb *Chatbot) closeRunnerEventFromChannel(runner *Runner) error {
+	if runner == nil || runner.rule.ID == nil || runner.rule.Parameters == nil || runner.rule.Parameters.Trigger == nil || runner.rule.Parameters.Trigger.OnEvent == nil || runner.rule.Parameters.Trigger.OnEvent.FromChannel == nil {
+		return fmt.Errorf("invalid runner event")
+	}
+
+	cb.receiversMu.Lock()
+	defer cb.receiversMu.Unlock()
+
+	rcvr, exists := cb.receivers[runner.page]
+	if !exists {
+		return fmt.Errorf("receiver for runner does not exist")
+	}
+
+	fromChannel := runner.rule.Parameters.Trigger.OnEvent.FromChannel
+	switch {
+	case fromChannel.OnFollow != nil:
+		rcvr.onFollowMu.Lock()
+		defer rcvr.onFollowMu.Unlock()
+		followR, exists := rcvr.onFollow[*runner.rule.ID]
+		if !exists {
+			return fmt.Errorf("channel for runner does not exist")
+		}
+		close(followR.apiCh)
+		delete(rcvr.onFollow, *runner.rule.ID)
+	}
+
+	return nil
+}
+
+func (cb *Chatbot) closeRunnerEventFromLiveStream(runner *Runner) error {
+	if runner == nil || runner.rule.ID == nil || runner.rule.Parameters == nil || runner.rule.Parameters.Trigger == nil || runner.rule.Parameters.Trigger.OnEvent == nil || runner.rule.Parameters.Trigger.OnEvent.FromLiveStream == nil {
+		return fmt.Errorf("invalid runner event")
+	}
+
+	cb.receiversMu.Lock()
+	defer cb.receiversMu.Unlock()
+
+	rcvr, exists := cb.receivers[runner.client.LiveStreamUrl]
+	if !exists {
+		return fmt.Errorf("receiver for runner does not exist")
+	}
+
+	fromLiveStream := runner.rule.Parameters.Trigger.OnEvent.FromLiveStream
+	switch {
+	case fromLiveStream.OnRaid != nil:
+		rcvr.onRaidMu.Lock()
+		defer rcvr.onRaidMu.Unlock()
+		ch, exists := rcvr.onRaid[*runner.rule.ID]
+		if !exists {
+			return fmt.Errorf("channel for runner does not exist")
+		}
+		close(ch)
+		delete(rcvr.onRaid, *runner.rule.ID)
+	case fromLiveStream.OnRant != nil:
+		rcvr.onRantMu.Lock()
+		defer rcvr.onRantMu.Unlock()
+		ch, exists := rcvr.onRant[*runner.rule.ID]
+		if !exists {
+			return fmt.Errorf("channel for runner does not exist")
+		}
+		close(ch)
+		delete(rcvr.onRant, *runner.rule.ID)
+	case fromLiveStream.OnSub != nil:
+		rcvr.onSubMu.Lock()
+		defer rcvr.onSubMu.Unlock()
+		ch, exists := rcvr.onSub[*runner.rule.ID]
+		if !exists {
+			return fmt.Errorf("channel for runner does not exist")
+		}
+		close(ch)
+		delete(rcvr.onSub, *runner.rule.ID)
+	}
+
+	return nil
+}
+
+func (cb *Chatbot) HandleApi(event events.Api) {
+	errs := cb.runApiFuncs(
+		event,
+		cb.handleApiFollow,
+	)
+
+	for _, err := range errs {
+		cb.logError.Println("chatbot: error handling api event:", err)
+	}
+}
+
+type apiFunc func(api events.Api) error
+
+func (cb *Chatbot) runApiFuncs(api events.Api, fns ...apiFunc) []error {
+	// TODO: validate api response?
+
+	errs := []error{}
+	for _, fn := range fns {
+		err := fn(api)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	return errs
+}
+
+func (cb *Chatbot) handleApiFollow(api events.Api) error {
+	cb.receiversMu.Lock()
+	defer cb.receiversMu.Unlock()
+
+	rcvr, exists := cb.receivers[api.Name]
+	if !exists {
+		return nil
+	}
+	if rcvr == nil {
+		return fmt.Errorf("receiver is nil for API: %s", api.Name)
+	}
+
+	rcvr.onFollowMu.Lock()
+	defer rcvr.onFollowMu.Unlock()
+
+	for _, runner := range rcvr.onFollow {
+		latest := runner.latest
+		for _, follower := range api.Resp.Followers.RecentFollowers {
+			followedOn, err := time.Parse(time.RFC3339, follower.FollowedOn)
+			// TODO: fix this in the API, not in the code
+			followedOn = followedOn.Add(-4 * time.Hour)
+			if err != nil {
+				return fmt.Errorf("error parsing followed_on time: %v", err)
+			}
+			if followedOn.After(runner.latest) {
+				if followedOn.After(latest) {
+					latest = followedOn
+				}
+				runner.apiCh <- events.ApiFollower{Username: follower.Username}
+			}
+		}
+		runner.latest = latest
+	}
+
+	return nil
+}
+
+func (cb *Chatbot) HandleChat(event events.Chat) {
 	switch event.Message.Type {
 	case rumblelivestreamlib.ChatTypeMessages:
 		cb.handleMessage(event)
@@ -390,6 +770,9 @@ func (cb *Chatbot) handleMessage(event events.Chat) {
 	errs := cb.runMessageFuncs(
 		event,
 		cb.handleMessageCommand,
+		cb.handleMessageEventRaid,
+		cb.handleMessageEventRant,
+		cb.handleMessageEventSub,
 	)
 
 	for _, err := range errs {
@@ -397,12 +780,12 @@ func (cb *Chatbot) handleMessage(event events.Chat) {
 	}
 }
 
-func (cb *Chatbot) runMessageFuncs(event events.Chat, fns ...messageFunc) []error {
+func (cb *Chatbot) runMessageFuncs(chat events.Chat, fns ...messageFunc) []error {
 	// TODO: validate message
 
 	errs := []error{}
 	for _, fn := range fns {
-		err := fn(event)
+		err := fn(chat)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -411,25 +794,25 @@ func (cb *Chatbot) runMessageFuncs(event events.Chat, fns ...messageFunc) []erro
 	return errs
 }
 
-type messageFunc func(event events.Chat) error
+type messageFunc func(chat events.Chat) error
 
-func (cb *Chatbot) handleMessageCommand(event events.Chat) error {
-	if strings.Index(event.Message.Text, "!") != 0 {
+func (cb *Chatbot) handleMessageCommand(chat events.Chat) error {
+	if strings.Index(chat.Message.Text, "!") != 0 {
 		return nil
 	}
 
-	words := strings.Split(event.Message.Text, " ")
+	words := strings.Split(chat.Message.Text, " ")
 	cmd := words[0]
 
 	cb.receiversMu.Lock()
 	defer cb.receiversMu.Unlock()
 
-	receiver, exists := cb.receivers[event.Livestream]
+	receiver, exists := cb.receivers[chat.Livestream]
 	if !exists {
 		return nil
 	}
 	if receiver == nil {
-		return fmt.Errorf("receiver is nil for livestream: %s", event.Livestream)
+		return fmt.Errorf("receiver is nil for livestream: %s", chat.Livestream)
 	}
 
 	receiver.onCommandMu.Lock()
@@ -440,7 +823,85 @@ func (cb *Chatbot) handleMessageCommand(event events.Chat) error {
 	}
 
 	for _, runner := range runners {
-		runner <- event
+		runner <- chat
+	}
+
+	return nil
+}
+
+func (cb *Chatbot) handleMessageEventRaid(chat events.Chat) error {
+	if !chat.Message.Raid {
+		return nil
+	}
+
+	cb.receiversMu.Lock()
+	defer cb.receiversMu.Unlock()
+
+	receiver, exists := cb.receivers[chat.Livestream]
+	if !exists {
+		return nil
+	}
+	if receiver == nil {
+		return fmt.Errorf("receiver is nil for livestream: %s", chat.Livestream)
+	}
+
+	receiver.onRaidMu.Lock()
+	defer receiver.onRaidMu.Unlock()
+
+	for _, runner := range receiver.onRaid {
+		runner <- chat
+	}
+
+	return nil
+}
+
+func (cb *Chatbot) handleMessageEventRant(chat events.Chat) error {
+	if chat.Message.Rant == 0 {
+		return nil
+	}
+
+	cb.receiversMu.Lock()
+	defer cb.receiversMu.Unlock()
+
+	receiver, exists := cb.receivers[chat.Livestream]
+	if !exists {
+		return nil
+	}
+	if receiver == nil {
+		return fmt.Errorf("receiver is nil for livestream: %s", chat.Livestream)
+	}
+
+	receiver.onRantMu.Lock()
+	defer receiver.onRantMu.Unlock()
+
+	for _, runner := range receiver.onRant {
+		runner <- chat
+	}
+
+	return nil
+}
+
+func (cb *Chatbot) handleMessageEventSub(chat events.Chat) error {
+	if !chat.Message.Sub {
+		return nil
+	}
+
+	cb.receiversMu.Lock()
+	defer cb.receiversMu.Unlock()
+
+	receiver, exists := cb.receivers[chat.Livestream]
+	if !exists {
+		return nil
+	}
+	if receiver == nil {
+		return fmt.Errorf("receiver is nil for livestream: %s", chat.Livestream)
+	}
+
+	receiver.onSubMu.Lock()
+	defer receiver.onSubMu.Unlock()
+
+	for _, runner := range receiver.onSub {
+		runner <- chat
 	}
 
 	return nil

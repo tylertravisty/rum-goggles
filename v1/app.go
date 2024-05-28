@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -190,7 +191,7 @@ func (a *App) processChat(event events.Chat) {
 
 // TODO: implement this
 func (a *App) chatbotApiProcessor(event events.Api) {
-	return
+	a.chatbot.HandleApi(event)
 }
 
 func (a *App) chatbotChatProcessor(event events.Chat) {
@@ -356,9 +357,9 @@ func (a *App) verifyAccounts() (int, error) {
 			}
 			loggedIn, err := client.LoggedIn()
 			if err != nil {
-				return -1, fmt.Errorf("error check if account is logged in: %v", err)
+				return -1, fmt.Errorf("error checking if account is logged in: %v", err)
 			}
-			if loggedIn {
+			if loggedIn.User.LoggedIn {
 				a.clients[*account.Username] = client
 			} else {
 				account.Cookies = nil
@@ -493,7 +494,24 @@ func (a *App) Login(username string, password string) error {
 		return fmt.Errorf("Error logging in. Try again.")
 	}
 	if acct == nil {
-		acct = &models.Account{nil, nil, &username, &cookiesS, nil, nil}
+		loggedIn, err := client.LoggedIn()
+		if err != nil {
+			a.logError.Println("error checking if account is logged in:", err)
+			return fmt.Errorf("Error logging in. Try again.")
+		}
+
+		uid, found := strings.CutPrefix(loggedIn.User.ID, "_u")
+		if !found {
+			a.logError.Println("did not find uid prefix '_u' in response after checking if accounts is logged in")
+			return fmt.Errorf("Error logging in. Try again.")
+		}
+		rumbleUsername := loggedIn.Data.Username
+		if rumbleUsername == "" {
+			a.logError.Println("username is empty in response after checking if accounts is logged in")
+			return fmt.Errorf("Error logging in. Try again.")
+		}
+
+		acct = &models.Account{nil, &uid, &rumbleUsername, &cookiesS, nil, nil}
 		id, err := a.services.AccountS.Create(acct)
 		if err != nil {
 			a.logError.Println("error creating account:", err)
@@ -784,6 +802,27 @@ func (a *App) ActivateChannel(id int64) error {
 	if err != nil {
 		a.logError.Println("error activating channel:", err)
 		return fmt.Errorf("Error activating channel. Try again.")
+	}
+
+	return nil
+}
+
+func (a *App) startPageApi(pi PageInfo) error {
+	name := pi.String()
+	if name == nil {
+		return fmt.Errorf("page name is nil")
+	}
+	url := pi.KeyUrl()
+	if url == nil {
+		return fmt.Errorf("page key url is nil")
+	}
+
+	if !a.producers.ApiP.Active(*name) {
+		err := a.producers.ApiP.Start(*name, *url, 10*time.Second)
+		if err != nil {
+			return fmt.Errorf("error starting api: %v", err)
+		}
+		runtime.EventsEmit(a.wails, "ApiActive-"+*name, true)
 	}
 
 	return nil
@@ -1400,6 +1439,41 @@ func (a *App) RunChatbotRule(rule *chatbot.Rule) error {
 		a.logError.Println("error starting chat producer:", err)
 		// TODO: send error to UI that chatbot URL could not be started
 		//runtime.EventsEmit("Ch")
+		return fmt.Errorf("Error connecting to chat. Try again.")
+	}
+
+	page := rule.Page()
+	if page != nil {
+		switch page.Prefix {
+		case chatbot.PrefixAccount:
+			acct, err := a.services.AccountS.ByUsername(page.Name)
+			if err != nil {
+				a.logError.Println("error getting account by username:", err)
+				return fmt.Errorf("Error getting account to monitor. Check rule and try again.")
+			}
+			if acct == nil {
+				return fmt.Errorf("Account to monitor does not exist. Check rule and try again.")
+			}
+			err = a.startPageApi(acct)
+			if err != nil {
+				a.logError.Println("error starting page api:", err)
+				return fmt.Errorf("Error starting API for account in rule. Try again.")
+			}
+		case chatbot.PrefixChannel:
+			channel, err := a.services.ChannelS.ByName(page.Name)
+			if err != nil {
+				a.logError.Println("error getting channel by name:", err)
+				return fmt.Errorf("Error getting channel to monitor. Check rule and try again.")
+			}
+			if channel == nil {
+				return fmt.Errorf("Channel to monitor does not exist. Check rule and try again.")
+			}
+			err = a.startPageApi(channel)
+			if err != nil {
+				a.logError.Println("error starting page api:", err)
+				return fmt.Errorf("Error starting API for channel in rule. Try again.")
+			}
+		}
 	}
 
 	err = a.chatbot.Run(rule, *mChatbot.Url)

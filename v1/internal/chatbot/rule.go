@@ -16,6 +16,11 @@ import (
 	"github.com/tylertravisty/rum-goggles/v1/internal/models"
 )
 
+const (
+	PrefixAccount = "/user/"
+	PrefixChannel = "/c/"
+)
+
 func SortRules(rules []Rule) {
 	slices.SortFunc(rules, func(a, b Rule) int {
 		return cmp.Compare(strings.ToLower(a.Display), strings.ToLower(b.Display))
@@ -30,10 +35,31 @@ type Rule struct {
 	Running    bool            `json:"running"`
 }
 
+type Page struct {
+	Name   string
+	Prefix string
+}
+
+func (r *Rule) Page() *Page {
+	if r.Parameters != nil {
+		return r.Parameters.Page()
+	}
+
+	return nil
+}
+
 type RuleParameters struct {
 	Message *RuleMessage `json:"message"`
 	SendAs  *RuleSender  `json:"send_as"`
 	Trigger *RuleTrigger `json:"trigger"`
+}
+
+func (rp *RuleParameters) Page() *Page {
+	if rp.Trigger != nil {
+		return rp.Trigger.Page()
+	}
+
+	return nil
 }
 
 type RuleMessage struct {
@@ -131,6 +157,14 @@ type RuleTrigger struct {
 	OnTimer   *time.Duration      `json:"on_timer"`
 }
 
+func (rt *RuleTrigger) Page() *Page {
+	if rt.OnEvent != nil {
+		return rt.OnEvent.Page()
+	}
+
+	return nil
+}
+
 type RuleTriggerCommand struct {
 	Command  string                         `json:"command"`
 	Restrict *RuleTriggerCommandRestriction `json:"restrict"`
@@ -154,11 +188,48 @@ type RuleTriggerCommandRestrictionBypass struct {
 }
 
 type RuleTriggerEvent struct {
-	OnFollow    bool `json:"on_follow"`
-	OnSubscribe bool `json:"on_subscribe"`
-	OnRaid      bool `json:"on_raid"`
-	OnRant      int  `json:"on_rant"`
+	FromAccount    *RuleTriggerEventAccount    `json:"from_account"`
+	FromChannel    *RuleTriggerEventChannel    `json:"from_channel"`
+	FromLiveStream *RuleTriggerEventLiveStream `json:"from_live_stream"`
 }
+
+func (rte *RuleTriggerEvent) Page() *Page {
+	switch {
+	case rte.FromAccount != nil:
+		return &Page{rte.FromAccount.Name, PrefixAccount}
+	case rte.FromChannel != nil:
+		return &Page{rte.FromChannel.Name, PrefixChannel}
+	default:
+		return nil
+	}
+}
+
+type RuleTriggerEventAccount struct {
+	Name     string                         `json:"name"`
+	OnFollow *RuleTriggerEventAccountFollow `json:"on_follow"`
+}
+
+type RuleTriggerEventAccountFollow struct{}
+
+type RuleTriggerEventChannel struct {
+	Name     string                         `json:"name"`
+	OnFollow *RuleTriggerEventChannelFollow `json:"on_follow"`
+}
+
+type RuleTriggerEventChannelFollow struct{}
+
+type RuleTriggerEventLiveStream struct {
+	OnRaid *RuleTriggerEventLiveStreamRaid `json:"on_raid"`
+	OnRant *RuleTriggerEventLiveStreamRant `json:"on_rant"`
+	OnSub  *RuleTriggerEventLiveStreamSub  `json:"on_sub"`
+}
+
+type RuleTriggerEventLiveStreamRaid struct{}
+type RuleTriggerEventLiveStreamRant struct {
+	MinAmount int `json:"min_amount"`
+	MaxAmount int `json:"max_amount"`
+}
+type RuleTriggerEventLiveStreamSub struct{}
 
 func (rule *Rule) ToModelsChatbotRule() (*models.ChatbotRule, error) {
 	modelsRule := &models.ChatbotRule{

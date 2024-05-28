@@ -258,6 +258,15 @@ type ChatEventBlock struct {
 	Type string             `json:"type"`
 }
 
+type ChatEventNotification struct {
+	Badge string `json:"badge"`
+	Text  string `json:"text"`
+}
+
+type ChatEventRaidNotification struct {
+	StartTs int64 `json:"start_ts"`
+}
+
 type ChatEventRant struct {
 	Duration   int    `json:"duration"`
 	ExpiresOn  string `json:"expires_on"`
@@ -265,13 +274,15 @@ type ChatEventRant struct {
 }
 
 type ChatEventMessage struct {
-	Blocks    []ChatEventBlock `json:"blocks"`
-	ChannelID *int64           `json:"channel_id"`
-	ID        string           `json:"id"`
-	Rant      *ChatEventRant   `json:"rant"`
-	Text      string           `json:"text"`
-	Time      string           `json:"time"`
-	UserID    string           `json:"user_id"`
+	Blocks           []ChatEventBlock           `json:"blocks"`
+	ChannelID        *int64                     `json:"channel_id"`
+	ID               string                     `json:"id"`
+	Notification     *ChatEventNotification     `json:"notification"`
+	RaidNotification *ChatEventRaidNotification `json:"raid_notification"`
+	Rant             *ChatEventRant             `json:"rant"`
+	Text             string                     `json:"text"`
+	Time             string                     `json:"time"`
+	UserID           string                     `json:"user_id"`
 }
 
 type ChatEventUser struct {
@@ -392,7 +403,9 @@ type ChatView struct {
 	ImageUrl    string
 	Init        bool
 	IsFollower  bool
+	Raid        bool
 	Rant        int
+	Sub         bool
 	Text        string
 	Time        time.Time
 	Type        string
@@ -456,8 +469,16 @@ func parseMessages(eventType string, messages []ChatEventMessage, users map[stri
 		view.Color = user.Color
 		view.ImageUrl = user.Image1
 		view.IsFollower = user.IsFollower
+		if message.RaidNotification != nil {
+			view.Raid = true
+		}
 		if message.Rant != nil {
 			view.Rant = message.Rant.PriceCents
+		}
+		if message.Notification != nil {
+			if message.Notification.Badge == ChatBadgeRecurringSubscription {
+				view.Sub = true
+			}
 		}
 		view.Text = message.Text
 		t, err := time.Parse(time.RFC3339, message.Time)
