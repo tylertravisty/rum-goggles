@@ -1,21 +1,54 @@
 # Roadmap
 
 Rum Goggles App:
-- Chat bot rule triggers on stream events
-    - On: follow, subscribe, rant, raid
+
+v1-beta:
 - Chat polls
 - Stream statistics
+
+v1.N:
+- Download subscriber data, track re-subs, trigger rules on re-subs
 - Stream moderator bot
+- OBS integration
 
 Rum Goggles Service:
+- Monitor all live stream chats
 - Channel points
 - Spam/Troll tracking
 
+# Bugs
+
+If connection to chat stream breaks, gracefully handle error
+- try to reconnect
+- let the chat rules know, etc.
+- test with VPN
+
 # Doing
 
-Before v1-alpha release:
-- stop all running rules when chat bot is deleted
-- indicator in chatbot that producer is running
+Monitor how many handlers are listening to a producer.
+- If producer.Stop is called, subtract from count.
+- If count == 0, stop producer
+
+Change API producer to monitor changes and only send new events, one at a time, to app, instead of the entire response; create datatype for single API event
+- update chatbot and page handlers to use single API events
+- page details should add to activity list one at a time
+    - store page list in Go, send entire list to frontend on updates
+    - list can be updated by any producer
+
+Add timeouts to event triggers to prevent rate limit?
+
+Don't stop rule if chat error is 429 Too Many Requests
+
+Check if sender is logged in before running rule. If not, return rule error.
+
+Add max rant amount for commands
+
+Button to export log file -> user selects folder
+
+Style scroll bars on Windows
+- WebView2 issue
+
+Indicator in chatbot that producer is running
     - this can be in many different places as needed
 
 Custom stream moderator rules
@@ -82,3 +115,6 @@ User settings:
 - API query timer (default: 2s)
 
 # To Do
+
+Currently relies on Rumble to manage account username case-sensitivity.
+- Change database table to use UNIQUE COLLATE NOCASE on account username

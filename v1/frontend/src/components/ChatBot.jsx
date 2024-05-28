@@ -1133,6 +1133,10 @@ function ModalRuleTriggerEvent(props) {
         let from_account = {};
         switch (event) {
             case 'Follow':
+                if (options.page === undefined || options.page === '') {
+                    setValidOptions(false);
+                    return;
+                }
                 from_account.name = options.page;
                 from_account.on_follow = {};
                 break;
@@ -1158,6 +1162,10 @@ function ModalRuleTriggerEvent(props) {
         let from_channel = {};
         switch (event) {
             case 'Follow':
+                if (options.page === undefined || options.page === '') {
+                    setValidOptions(false);
+                    return;
+                }
                 from_channel.name = options.page;
                 from_channel.on_follow = {};
                 break;
