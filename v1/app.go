@@ -913,12 +913,11 @@ func (a *App) DeleteAccount(id int64) error {
 		return fmt.Errorf("Error deleting account. Try again.")
 	}
 
-	if a.producers.ApiP.Active(*name) {
-		err := a.producers.ApiP.Stop(*name)
-		if err != nil {
-			a.logError.Println("error stopping api:", err)
-			return fmt.Errorf("Error deleting account. Try again.")
-		}
+	// Assumes page is active when delete is called.
+	err = a.activatePage(acct)
+	if err != nil {
+		a.logError.Println("error de-activating page:", err)
+		return fmt.Errorf("Error deleting account. Try again.")
 	}
 
 	err = a.services.AccountS.Delete(acct)
@@ -955,12 +954,11 @@ func (a *App) DeleteChannel(id int64) error {
 		return fmt.Errorf("Error deleting channel. Try again.")
 	}
 
-	if a.producers.ApiP.Active(*name) {
-		err := a.producers.ApiP.Stop(*name)
-		if err != nil {
-			a.logError.Println("error stopping api:", err)
-			return fmt.Errorf("Error deleting channel. Try again.")
-		}
+	// Assumes page is active when delete is called.
+	err = a.activatePage(channel)
+	if err != nil {
+		a.logError.Println("error de-activating page:", err)
+		return fmt.Errorf("Error deleting account. Try again.")
 	}
 
 	err = a.services.ChannelS.Delete(channel)
