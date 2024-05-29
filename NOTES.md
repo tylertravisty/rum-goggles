@@ -18,12 +18,17 @@ Rum Goggles Service:
 
 # Bugs
 
+Chat bot rule menu back button does not work in macOS
+
 If connection to chat stream breaks, gracefully handle error
 - try to reconnect
 - let the chat rules know, etc.
 - test with VPN
 
 # Doing
+
+Add bypass to commands for:
+- Host, admin, mod, etc.
 
 Monitor how many handlers are listening to a producer.
 - If producer.Stop is called, subtract from count.
