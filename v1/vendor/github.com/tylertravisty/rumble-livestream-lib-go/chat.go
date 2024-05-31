@@ -88,11 +88,11 @@ func (c *Client) getChatInfo() (*ChatInfo, error) {
 				return nil, fmt.Errorf("error finding end of chat function in webpage")
 			}
 			args := parseRumbleChatArgs(lineS[start : start+end])
-			channelID, err := strconv.Atoi(args[5])
+			channelID, err := strconv.Atoi(args[6])
 			if err != nil {
 				return nil, fmt.Errorf("error converting channel ID argument string to int: %v", err)
 			}
-			chatInfo = &ChatInfo{ChannelID: channelID, ChatID: args[1], UrlPrefix: args[0]}
+			chatInfo = &ChatInfo{ChannelID: channelID, ChatID: args[2], UrlPrefix: args[0]}
 		} else if strings.Contains(lineS, "media-by--a") && strings.Contains(lineS, "author") {
 			r := strings.NewReader(lineS)
 			node, err := html.Parse(r)

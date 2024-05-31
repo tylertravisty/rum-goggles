@@ -18,6 +18,10 @@ Rum Goggles Service:
 
 # Bugs
 
+Updating chat bot URL does not show up in UI until app is restarted
+
+Sign in with email does not work
+
 Chat bot rule menu back button does not work in macOS
 
 If connection to chat stream breaks, gracefully handle error
