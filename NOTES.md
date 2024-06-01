@@ -12,15 +12,14 @@ v1.N:
 - OBS integration
 
 Rum Goggles Service:
+- Chat polls
 - Monitor all live stream chats
 - Channel points
 - Spam/Troll tracking
 
 # Bugs
 
-Updating chat bot URL does not show up in UI until app is restarted
-
-Sign in with email does not work
+Windows 10: white screen of death when deleting accounts/channels
 
 Chat bot rule menu back button does not work in macOS
 

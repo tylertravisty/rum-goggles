@@ -42,8 +42,19 @@ function ChatBot(props) {
     const [openNewRule, setOpenNewRule] = useState(false);
     const [chatbotRules, setChatbotRules] = useState([]);
     const [chatbotSettings, setChatbotSettings] = useState(true);
+    const [refresh, setRefresh] = useState(false);
 
     useEffect(() => {
+        EventsOff('ChatbotInfo');
+        EventsOn('ChatbotInfo', (event) => {
+            if (openChatbot !== null && openChatbot.id === event.id) {
+                openChatbot.name = event.name;
+                openChatbot.url = event.url;
+                setRefresh(!refresh);
+            }
+        });
+
+        EventsOff('ChatbotList');
         EventsOn('ChatbotList', (event) => {
             setChatbots(event);
             if (openChatbot !== null) {
@@ -54,7 +65,9 @@ function ChatBot(props) {
                 }
             }
         });
+    }, [openChatbot]);
 
+    useEffect(() => {
         EventsOn('ChatbotRules', (event) => {
             setChatbotRules(event);
         });

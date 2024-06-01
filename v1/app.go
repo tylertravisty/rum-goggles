@@ -835,10 +835,6 @@ func (a *App) activatePage(pi PageInfo) error {
 	if name == nil {
 		return fmt.Errorf("page name is nil")
 	}
-	url := pi.KeyUrl()
-	if url == nil {
-		return fmt.Errorf("page key url is nil")
-	}
 
 	a.pagesMu.Lock()
 	page, exists := a.pages[*name]
@@ -873,6 +869,11 @@ func (a *App) activatePage(pi PageInfo) error {
 	}
 	page.active = true
 
+	url := pi.KeyUrl()
+	if url == nil {
+		return fmt.Errorf("page key url is nil")
+	}
+
 	err := a.producers.ApiP.Start(*name, *url, 10*time.Second)
 	if err != nil {
 		return fmt.Errorf("error starting api: %v", err)
@@ -884,6 +885,43 @@ func (a *App) activatePage(pi PageInfo) error {
 		return fmt.Errorf("error displaying page: %v", err)
 	}
 	runtime.EventsEmit(a.wails, "PageActive", true)
+
+	return nil
+}
+
+func (a *App) deletePage(pi PageInfo) error {
+	name := pi.String()
+	if name == nil {
+		return fmt.Errorf("page name is nil")
+	}
+
+	a.pagesMu.Lock()
+	defer a.pagesMu.Unlock()
+	page, exists := a.pages[*name]
+	if !exists {
+		return fmt.Errorf("page does not exist")
+	}
+
+	page.activeMu.Lock()
+	defer page.activeMu.Unlock()
+	if page.active {
+		if a.producers.ApiP.Active(*name) {
+			err := a.producers.ApiP.Stop(*name)
+			if err != nil {
+				return fmt.Errorf("error stopping api: %v", err)
+			}
+		}
+
+		page.displayingMu.Lock()
+		if page.displaying {
+			runtime.EventsEmit(a.wails, "PageActive", false)
+		}
+		page.displayingMu.Unlock()
+
+		page.active = false
+	}
+
+	delete(a.pages, *name)
 
 	return nil
 }
@@ -913,10 +951,9 @@ func (a *App) DeleteAccount(id int64) error {
 		return fmt.Errorf("Error deleting account. Try again.")
 	}
 
-	// Assumes page is active when delete is called.
-	err = a.activatePage(acct)
+	err = a.deletePage(acct)
 	if err != nil {
-		a.logError.Println("error de-activating page:", err)
+		a.logError.Println("error deleting page:", err)
 		return fmt.Errorf("Error deleting account. Try again.")
 	}
 
@@ -954,11 +991,10 @@ func (a *App) DeleteChannel(id int64) error {
 		return fmt.Errorf("Error deleting channel. Try again.")
 	}
 
-	// Assumes page is active when delete is called.
-	err = a.activatePage(channel)
+	err = a.deletePage(channel)
 	if err != nil {
-		a.logError.Println("error de-activating page:", err)
-		return fmt.Errorf("Error deleting account. Try again.")
+		a.logError.Println("error deleting page:", err)
+		return fmt.Errorf("Error deleting channel. Try again.")
 	}
 
 	err = a.services.ChannelS.Delete(channel)
@@ -1273,12 +1309,13 @@ func (a *App) UpdateChatbot(chatbot *models.Chatbot) error {
 		return fmt.Errorf("Error updating chatbot. Try again.")
 	}
 
-	list, err := a.chatbotList()
-	if err != nil {
-		a.logError.Println("error getting chatbot list:", err)
-		return fmt.Errorf("Error updating chatbot. Try again.")
-	}
-	runtime.EventsEmit(a.wails, "ChatbotList", list)
+	// list, err := a.chatbotList()
+	// if err != nil {
+	// 	a.logError.Println("error getting chatbot list:", err)
+	// 	return fmt.Errorf("Error updating chatbot. Try again.")
+	// }
+	runtime.EventsEmit(a.wails, "ChatbotInfo", chatbot)
+	// runtime.EventsEmit(a.wails, "ChatbotList", list)
 
 	return nil
 }
