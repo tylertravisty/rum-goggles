@@ -19,8 +19,6 @@ Rum Goggles Service:
 
 # Bugs
 
-Windows 10: white screen of death when deleting accounts/channels
-
 Chat bot rule menu back button does not work in macOS
 
 If connection to chat stream breaks, gracefully handle error

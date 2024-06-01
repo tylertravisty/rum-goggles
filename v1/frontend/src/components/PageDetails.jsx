@@ -352,7 +352,7 @@ function PageDetails(props) {
                     onClose={resetDelete}
                     deleteButton={deleting ? 'Deleting' : 'Delete'}
                     onDelete={deletePage}
-                    deleteActive={details.title === deleteName}
+                    deleteActive={details === null ? false : details.title === deleteName}
                     pageName={details.title}
                     show={openDelete}
                     style={{
