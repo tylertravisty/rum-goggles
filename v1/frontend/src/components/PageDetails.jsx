@@ -344,7 +344,7 @@ function PageDetails(props) {
                     onSubmit={() => setError('')}
                 />
             )}
-            {openDelete && (
+            {openDelete && details !== null && (
                 <Modal
                     backgroundClose={true}
                     cancelButton={'Cancel'}
@@ -352,7 +352,7 @@ function PageDetails(props) {
                     onClose={resetDelete}
                     deleteButton={deleting ? 'Deleting' : 'Delete'}
                     onDelete={deletePage}
-                    deleteActive={details === null ? false : details.title === deleteName}
+                    deleteActive={details.title === deleteName}
                     pageName={details.title}
                     show={openDelete}
                     style={{
