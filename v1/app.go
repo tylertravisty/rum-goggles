@@ -899,7 +899,7 @@ func (a *App) deletePage(pi PageInfo) error {
 	defer a.pagesMu.Unlock()
 	page, exists := a.pages[*name]
 	if !exists {
-		return fmt.Errorf("page does not exist")
+		return nil
 	}
 
 	page.activeMu.Lock()
